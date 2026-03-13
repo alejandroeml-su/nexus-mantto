@@ -1,0 +1,199 @@
+.sidebar {
+  width: 260px;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  padding: var(--spacing-lg);
+  gap: var(--spacing-xl);
+  z-index: 100;
+  transition: var(--transition-normal);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--primary);
+  letter-spacing: -0.025em;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  flex: 1;
+}
+
+.navItem {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-md);
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: var(--transition-fast);
+}
+
+.navItem:hover {
+  background: var(--bg-accent);
+  color: var(--text-primary);
+}
+
+.active {
+  background: var(--primary);
+  color: white !important;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.footer {
+  padding-top: var(--spacing-md);
+  border-top: 1px solid var(--glass-border);
+  position: relative;
+}
+
+.roleSwitcher {
+  position: relative;
+  margin-bottom: var(--spacing-md);
+}
+
+.currentRole {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm);
+  border-radius: var(--radius-md);
+  transition: var(--transition-fast);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+
+.currentRole:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  color: white;
+  flex-shrink: 0;
+}
+
+.roleInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.userName {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.userRole {
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.roleMenu {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  width: 100%;
+  background: #1a1b23;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-xs);
+  margin-bottom: var(--spacing-sm);
+  z-index: 10;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+}
+
+.roleOption {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-md);
+  text-align: left;
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: var(--transition-fast);
+}
+
+.roleOption:hover {
+  background: var(--primary);
+  color: white;
+}
+
+.logoutBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-radius: var(--radius-md);
+  color: var(--danger);
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: rgba(239, 68, 68, 0.1);
+  border: none;
+  cursor: pointer;
+}
+
+@media (max-width: 1024px) {
+  .sidebar:not(.mobile) {
+    width: 60px;
+    padding: var(--spacing-md) var(--spacing-sm);
+  }
+  
+  .sidebar:not(.mobile) .logo span, 
+  .sidebar:not(.mobile) .navItem span, 
+  .sidebar:not(.mobile) .userName, 
+  .sidebar:not(.mobile) .userRole, 
+  .sidebar:not(.mobile) .logoutBtn span {
+    display: none;
+  }
+  
+  .sidebar:not(.mobile) .navItem {
+    justify-content: center;
+  }
+  
+  .sidebar:not(.mobile) .currentRole {
+    padding: var(--spacing-sm) 0;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebar:not(.mobile) {
+    transform: translateX(-100%);
+  }
+  
+  .sidebar.mobile {
+    transform: translateX(0);
+    position: relative;
+    width: 100%;
+    z-index: 400;
+  }
+}
+
+.mobile {
+  background: #0d0e12;
+  width: 100%;
+}
