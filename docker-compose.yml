@@ -3,7 +3,7 @@ version: '3.8'
 services:
   nexus-mantto:
     container_name: nexus-mantto-app
-    build: .
+    build: https://github.com/alejandroeml-su/nexus-mantto.git#main
     ports:
       - "3000:3000"
     environment:
