@@ -14,18 +14,25 @@ import {
   CheckCircle2, 
   FileText, 
   X,
+  Settings,
+  Briefcase,
+  Package,
+  Paperclip,
   Activity,
   Tag,
   AlertTriangle,
   User,
   MessageSquare,
+  Trash,
+  PlusCircle,
+  Image as ImageIcon,
+  Download,
+  Upload,
   ChevronRight,
   CalendarDays,
-  CheckSquare,
   Square,
-  Settings,
-  MapPin,
-  Save
+  CheckSquare,
+  Printer
 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { 
@@ -41,7 +48,16 @@ import {
   scheduleBatchMantenimiento,
   getCatalogo,
   createCatalogoEntry,
-  deleteCatalogoEntry
+  deleteCatalogoEntry,
+  getUbicaciones,
+  getActividades,
+  addActividad,
+  deleteActividad,
+  getItems,
+  addItem,
+  deleteItem,
+  getEvidencias,
+  addEvidencia
 } from '@/lib/actions';
 import { Activo, Sede } from '@/lib/types';
 import { useRole } from '@/lib/useRole';
@@ -55,7 +71,7 @@ export default function ActivosPage() {
   const estadoFilter = searchParams.get('estado');
   
   const [activos, setActivos] = useState<any[]>([]);
-  const [sedes, setSedes] = useState<Sede[]>([]);
+  const [ubicaciones, setUbicaciones] = useState<any[]>([]);
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [selectedQR, setSelectedQR] = useState<{ name: string; value: string } | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -69,8 +85,13 @@ export default function ActivosPage() {
   const [detailItem, setDetailItem] = useState<any | null>(null);
   const [newComment, setNewComment] = useState('');
   const [editingActivo, setEditingActivo] = useState<any | null>(null);
-  const [activeSubTab, setActiveSubTab] = useState<'seguimiento' | 'historial'>('seguimiento');
+  const [activeSubTab, setActiveSubTab] = useState<'seguimiento' | 'actividades' | 'items' | 'evidencias' | 'historial'>('seguimiento');
   const [historial, setHistorial] = useState<any[]>([]);
+  const [actividades, setActividades] = useState<any[]>([]);
+  const [items, setItems] = useState<any[]>([]);
+  const [evidencias, setEvidencias] = useState<any[]>([]);
+  const [activityForm, setActivityForm] = useState({ descripcion: '', fecha_inicio: '', fecha_fin: '' });
+  const [itemForm, setItemForm] = useState({ descripcion: '', cantidad: 1, precio_unitario: 0 });
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([]);
 
   // Catalogs
@@ -83,7 +104,7 @@ export default function ActivosPage() {
   const [newEntry, setNewEntry] = useState('');
 
   const [formData, setFormData] = useState<Partial<Activo>>({
-    nombre: '', codigo_activo: '', marca: '', modelo: '', serie: '', anio: new Date().getFullYear(), descripcion: '', sede_id: '', estado: 'Operativo'
+    nombre: '', codigo_activo: '', marca: '', modelo: '', serie: '', anio: new Date().getFullYear(), descripcion: '', ubicacion_id: '', estado: 'Operativo'
   });
 
   const [batchData, setBatchData] = useState({
@@ -104,14 +125,14 @@ export default function ActivosPage() {
 
   useEffect(() => {
     if (detailItem) {
-      loadAuditHistorial(detailItem.id);
+      loadExtraInfo(detailItem.id);
     }
   }, [detailItem?.id]);
 
   async function loadData() {
-    const [a, s] = await Promise.all([getActivos(), getSedes()]);
+    const [a, ubi] = await Promise.all([getActivos(), getUbicaciones()]);
     setActivos(a);
-    setSedes(s as Sede[]);
+    setUbicaciones(ubi);
   }
 
   async function loadExtraData() {
@@ -137,9 +158,17 @@ export default function ActivosPage() {
     setEstadosCatalog(e);
   }
 
-  async function loadAuditHistorial(id: string) {
-    const data = await getHistorialMantenimiento(id);
-    setHistorial(data);
+  async function loadExtraInfo(id: string) {
+    const [h, a, i, e] = await Promise.all([
+      getHistorialMantenimiento(id),
+      getActividades(id),
+      getItems(id),
+      getEvidencias(id)
+    ]);
+    setHistorial(h);
+    setActividades(a);
+    setItems(i);
+    setEvidencias(e);
   }
 
   async function addCatalogEntry() {
@@ -177,7 +206,7 @@ export default function ActivosPage() {
       serie: activo.serie || '',
       anio: activo.anio || new Date().getFullYear(),
       descripcion: activo.descripcion || '',
-      sede_id: activo.sede_id || '',
+      ubicacion_id: activo.ubicacion_id || '',
       estado: activo.estado || 'Operativo',
       tipo: activo.tipo || 'General'
     });
@@ -213,8 +242,59 @@ export default function ActivosPage() {
     setDetailItem({ ...detailItem, comentarios: updatedComments });
     setNewComment('');
     loadData();
-    loadAuditHistorial(detailItem.id);
+    loadExtraInfo(detailItem.id);
   }
+
+  const handleAddActivity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!detailItem) return;
+    await addActividad({
+      mantenimiento_id: detailItem.id, 
+      descripcion: activityForm.descripcion, 
+      fecha_inicio: activityForm.fecha_inicio, 
+      fecha_fin: activityForm.fecha_fin
+    });
+    setActivityForm({ descripcion: '', fecha_inicio: '', fecha_fin: '' });
+    loadExtraInfo(detailItem.id);
+  };
+
+  const handleDeleteActivity = async (id: string) => {
+    if (confirm('¿Eliminar esta actividad?')) {
+        await deleteActividad(id);
+        if (detailItem) loadExtraInfo(detailItem.id);
+    }
+  };
+
+  const handleAddItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!detailItem) return;
+    await addItem({
+      mantenimiento_id: detailItem.id, 
+      descripcion: itemForm.descripcion, 
+      cantidad: itemForm.cantidad, 
+      precio_unitario: itemForm.precio_unitario
+    });
+    setItemForm({ descripcion: '', cantidad: 1, precio_unitario: 0 });
+    loadExtraInfo(detailItem.id);
+  };
+
+  const handleDeleteItem = async (id: string) => {
+    if (confirm('¿Eliminar este material?')) {
+        await deleteItem(id, detailItem.id);
+        if (detailItem) loadExtraInfo(detailItem.id);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!detailItem || !e.target.files?.length) return;
+    for (let i = 0; i < e.target.files.length; i++) {
+        const file = e.target.files[i];
+        const dummyUrl = `/uploads/${file.name}`;
+        const type = file.type.startsWith('image/') ? 'Imagen' : 'Documento';
+        await addEvidencia(detailItem.id, type, dummyUrl, `Adjunto: ${file.name}`, file.name);
+    }
+    loadExtraInfo(detailItem.id);
+  };
 
   async function handleUpdateField(campo: string, valor: any) {
     if (!detailItem) return;
@@ -222,13 +302,13 @@ export default function ActivosPage() {
     const updatedItem = { ...detailItem, [campo]: valor };
     setDetailItem(updatedItem);
     loadData();
-    loadAuditHistorial(detailItem.id);
+    loadExtraInfo(detailItem.id);
   }
 
   function closeModal() {
     setIsModalOpen(false);
     setEditingActivo(null);
-    setFormData({ nombre: '', codigo_activo: '', marca: '', modelo: '', serie: '', anio: new Date().getFullYear(), descripcion: '', sede_id: '', estado: 'Operativo' });
+    setFormData({ nombre: '', codigo_activo: '', marca: '', modelo: '', serie: '', anio: new Date().getFullYear(), descripcion: '', ubicacion_id: '', estado: 'Operativo' });
   }
 
   const toggleSelection = (id: string) => {
@@ -478,13 +558,19 @@ export default function ActivosPage() {
                   <label>Número de Serie</label>
                   <input type="text" value={formData.serie} onChange={e => setFormData({...formData, serie: e.target.value})} />
                 </div>
-                <div className={styles.formGroup}>
-                  <label>Sede</label>
-                  <select value={formData.sede_id} onChange={e => setFormData({...formData, sede_id: e.target.value})}>
-                    <option value="">Seleccionar Sede</option>
-                    {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-                  </select>
-                </div>
+              </div>
+              <div className={styles.formGroup}>
+                <label>Ubicación (Sede - Area - Lugar)</label>
+                <select value={formData.ubicacion_id} onChange={e => setFormData({...formData, ubicacion_id: e.target.value})} required>
+                  <option value="">Seleccionar Ubicación</option>
+                  {ubicaciones.map(u => (
+                      <option key={u.id} value={u.id}>
+                          {u.sede_nombre} - {u.area_nombre} - {u.nombre}
+                      </option>
+                  ))}
+                </select>
+              </div>
+              <div className={styles.formGrid}>
                 <div className={styles.formGroup}>
                   <label>Estado</label>
                   <select value={formData.estado} onChange={e => setFormData({...formData, estado: e.target.value as any})}>
@@ -625,26 +711,33 @@ export default function ActivosPage() {
           <div className={`${styles.detailModal} glass animate-fade-in`}>
             <div className={styles.modalHeader}>
               <div>
-                <h2 className={styles.assetNameTitle}>OT-{detailItem.id.split('-')[0].toUpperCase()}</h2>
+                <h2 className={styles.detailTitle}>Folio: OT-{detailItem.id.split('-')[0].toUpperCase()}</h2>
                 <div style={{display: 'flex', gap: '15px', color: 'var(--text-secondary)', fontSize: '0.8125rem', marginTop: '4px'}}>
                    <span>Activo: <strong>{detailItem.activo_nombre}</strong></span>
                    <span>Creado por: <strong>{detailItem.creado_por || 'Sistema'}</strong></span>
                    <span>Fecha Reg: <strong>{new Date(detailItem.created_at).toLocaleString()}</strong></span>
                 </div>
               </div>
-              <button className={styles.cancelBtn} onClick={() => setDetailItem(null)}>Cerrar</button>
+              <div className={styles.modalHeaderActions}>
+                <button className={styles.printBtn} title="Imprimir Orden" onClick={() => window.print()}>
+                  <Printer size={20} />
+                </button>
+                <button className={styles.closeModalBtn} onClick={() => setDetailItem(null)}>
+                  <X size={24} />
+                </button>
+              </div>
             </div>
             
             <div className={styles.detailGrid}>
               <div className={styles.infoSection}>
                 <div className={styles.sectionTitle}>
                     <Activity size={18} />
-                    <h3>Información General</h3>
+                    <h3>Información y Edición</h3>
                 </div>
                 
                 <div className={styles.formGrid}>
-                    <div className={styles.infoRow} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                        <label style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Estado</label>
+                    <div className={styles.infoRow}>
+                        <label><Activity size={14} /> Estado</label>
                         <select className={styles.statusSelect} value={detailItem.estado || ''} onChange={(e) => handleUpdateField('estado', e.target.value)}>
                             <option value="Programado">Programado</option>
                             <option value="En Proceso">En Proceso</option>
@@ -652,8 +745,25 @@ export default function ActivosPage() {
                             <option value="Cancelado">Cancelado</option>
                         </select>
                     </div>
-                    <div className={styles.infoRow} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
-                        <label style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Técnico</label>
+                    <div className={styles.infoRow}>
+                        <label><Tag size={14} /> Tipo</label>
+                        <select className={styles.statusSelect} value={detailItem.tipo || ''} onChange={(e) => handleUpdateField('tipo', e.target.value)}>
+                            <option value="Preventivo">Preventivo</option>
+                            <option value="Correctivo">Correctivo</option>
+                            <option value="Predictivo">Predictivo</option>
+                        </select>
+                    </div>
+                    <div className={styles.infoRow}>
+                        <label><AlertTriangle size={14} /> Prioridad</label>
+                        <select className={styles.statusSelect} value={detailItem.prioridad || ''} onChange={(e) => handleUpdateField('prioridad', e.target.value)}>
+                            <option value="Baja">Baja</option>
+                            <option value="Media">Media</option>
+                            <option value="Alta">Alta</option>
+                            <option value="Crítica">Crítica</option>
+                        </select>
+                    </div>
+                    <div className={styles.infoRow}>
+                        <label><User size={14} /> Técnico</label>
                         <select className={styles.statusSelect} value={detailItem.tecnico_id || ''} onChange={(e) => handleUpdateField('tecnico_id', e.target.value)}>
                             <option value="">No asignado</option>
                             {usuarios.map(u => <option key={u.id} value={u.id}>{u.nombre}</option>)}
@@ -662,7 +772,7 @@ export default function ActivosPage() {
                 </div>
 
                 <div className={styles.infoBlock}>
-                  <label style={{ fontWeight: 700, color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Descripción:</label>
+                  <label style={{ fontWeight: 700, color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>Descripción del Problema / Trabajo:</label>
                   <textarea 
                     className={styles.editableTextArea}
                     value={detailItem.descripcion}
@@ -676,6 +786,15 @@ export default function ActivosPage() {
                 <div className={styles.subTabs}>
                     <button className={`${styles.subTab} ${activeSubTab === 'seguimiento' ? styles.activeSubTab : ''}`} onClick={() => setActiveSubTab('seguimiento')}>
                         <MessageSquare size={16} /> Seguimiento
+                    </button>
+                    <button className={`${styles.subTab} ${activeSubTab === 'actividades' ? styles.activeSubTab : ''}`} onClick={() => setActiveSubTab('actividades')}>
+                        <Briefcase size={16} /> Actividades
+                    </button>
+                    <button className={`${styles.subTab} ${activeSubTab === 'items' ? styles.activeSubTab : ''}`} onClick={() => setActiveSubTab('items')}>
+                        <Package size={16} /> Materiales
+                    </button>
+                    <button className={`${styles.subTab} ${activeSubTab === 'evidencias' ? styles.activeSubTab : ''}`} onClick={() => setActiveSubTab('evidencias')}>
+                        <Paperclip size={16} /> Evidencias
                     </button>
                     <button className={`${styles.subTab} ${activeSubTab === 'historial' ? styles.activeSubTab : ''}`} onClick={() => setActiveSubTab('historial')}>
                         <History size={16} /> Auditoría
@@ -693,6 +812,136 @@ export default function ActivosPage() {
                             <textarea placeholder="Agregar avance..." value={newComment} onChange={e => setNewComment(e.target.value)} required />
                             <button type="submit" className={styles.saveBtn}>Guardar Notas</button>
                         </form>
+                    </div>
+                )}
+
+                {activeSubTab === 'actividades' && (
+                    <div className={styles.tabContent}>
+                        <div className={styles.historyList} style={{ height: '250px' }}>
+                            {actividades.map((a) => (
+                                <div key={a.id} className={styles.historyItem} style={{ borderLeftColor: 'var(--primary)' }}>
+                                    <div className={styles.historyHeader}>
+                                        <span style={{ fontWeight: 700 }}>{a.descripcion}</span>
+                                        <button onClick={() => handleDeleteActivity(a.id)} className={styles.deleteBtn}><Trash size={14} /></button>
+                                    </div>
+                                    <div className={styles.metaInfo}>
+                                        <Clock size={12} />
+                                        <span>{a.fecha_inicio ? new Date(a.fecha_inicio).toLocaleString() : '---'} a {a.fecha_fin ? new Date(a.fecha_fin).toLocaleString() : '---'}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <form className={styles.quickForm} onSubmit={handleAddActivity}>
+                            <input type="text" placeholder="Nueva actividad..." value={activityForm.descripcion} onChange={e => setActivityForm({...activityForm, descripcion: e.target.value})} required />
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                <input type="datetime-local" value={activityForm.fecha_inicio} onChange={e => setActivityForm({...activityForm, fecha_inicio: e.target.value})} required />
+                                <input type="datetime-local" value={activityForm.fecha_fin} onChange={e => setActivityForm({...activityForm, fecha_fin: e.target.value})} required />
+                            </div>
+                            <button type="submit" className={styles.saveBtn}><PlusCircle size={14} /> Agregar Actividad</button>
+                        </form>
+                    </div>
+                )}
+
+                {activeSubTab === 'items' && (
+                    <div className={styles.tabContent}>
+                        <div className={styles.historyList} style={{ height: '220px', marginBottom: '15px' }}>
+                            <table className={styles.miniTable}>
+                                <thead>
+                                    <tr>
+                                        <th>Material</th>
+                                        <th>Cant.</th>
+                                        <th>P. Unit</th>
+                                        <th>Total</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {items.map((i) => (
+                                        <tr key={i.id}>
+                                            <td>{i.descripcion}</td>
+                                            <td>{i.cantidad}</td>
+                                            <td>${i.precio_unitario}</td>
+                                            <td style={{ fontWeight: 700 }}>${i.total}</td>
+                                            <td>
+                                                <button onClick={() => handleDeleteItem(i.id)} className={styles.deleteBtn}>
+                                                    <Trash size={14} />
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {items.length > 0 && (
+                                        <tr className={styles.totalRow}>
+                                            <td colSpan={3} style={{textAlign: 'right', paddingRight: '15px'}}>COSTO TOTAL MATERIALES:</td>
+                                            <td colSpan={2}>${items.reduce((acc, curr) => acc + parseFloat(curr.total), 0).toFixed(2)}</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <form className={styles.quickForm} onSubmit={handleAddItem}>
+                            <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-end' }}>
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                    <label style={{fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)'}}>Descripción Material</label>
+                                    <input type="text" placeholder="Repuesto / Insumo..." value={itemForm.descripcion} onChange={e => setItemForm({...itemForm, descripcion: e.target.value})} required />
+                                </div>
+                                <div style={{ width: '80px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                    <label style={{fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)'}}>Cant.</label>
+                                    <input 
+                                        type="number" 
+                                        step="0.01" 
+                                        placeholder="0" 
+                                        style={{ width: '100%' }}
+                                        value={isNaN(itemForm.cantidad) ? '' : itemForm.cantidad} 
+                                        onChange={e => setItemForm({...itemForm, cantidad: e.target.value === '' ? 0 : parseFloat(e.target.value)})} 
+                                        required 
+                                    />
+                                </div>
+                                <div style={{ width: '110px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                    <label style={{fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)'}}>P. Unit</label>
+                                    <input 
+                                        type="number" 
+                                        step="0.01" 
+                                        placeholder="0.00" 
+                                        style={{ width: '100%' }}
+                                        value={isNaN(itemForm.precio_unitario) ? '' : itemForm.precio_unitario} 
+                                        onChange={e => setItemForm({...itemForm, precio_unitario: e.target.value === '' ? 0 : parseFloat(e.target.value)})} 
+                                        required 
+                                    />
+                                </div>
+                                <div style={{ width: '100px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                    <label style={{fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)'}}>Subtotal</label>
+                                    <span style={{fontWeight: '800', fontSize: '1.1rem', color: 'var(--primary)', padding: '10px 0'}}>${(itemForm.cantidad * itemForm.precio_unitario).toFixed(2)}</span>
+                                </div>
+                                <button type="submit" className={styles.saveBtn} style={{height: '42px', padding: '0 15px'}}>
+                                    <PlusCircle size={18} />
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                )}
+
+                {activeSubTab === 'evidencias' && (
+                    <div className={styles.tabContent}>
+                        <div className={styles.evidenceList}>
+                            {evidencias.length > 0 ? evidencias.map((ev) => (
+                                <div key={ev.id} className={styles.evidenceCard}>
+                                    <div className={styles.evidenceIcon}>
+                                        {ev.tipo === 'Imagen' ? <ImageIcon size={20} /> : <FileText size={20} />}
+                                    </div>
+                                    <span className={styles.evidenceName}>{ev.nombre || 'Archivo'}</span>
+                                    <a href={ev.url} target="_blank" rel="noopener noreferrer" className={styles.downloadBtn}>
+                                        <Download size={14} />
+                                    </a>
+                                </div>
+                            )) : <p className={styles.noComments}>Sin evidencias.</p>}
+                        </div>
+                        <div className={styles.uploadSection}>
+                            <label className={styles.uploadTrigger}>
+                                <Upload size={18} />
+                                <span>Adjuntar Imágenes / Docs</span>
+                                <input type="file" multiple className={styles.fileInput} onChange={handleFileUpload} style={{ display: 'none' }} />
+                            </label>
+                        </div>
                     </div>
                 )}
 
@@ -716,6 +965,110 @@ export default function ActivosPage() {
                         </div>
                     </div>
                 )}
+              </div>
+            </div>
+          </div>
+
+          {/* Printable Area for Assets Work Order */}
+          <div className={styles.printableArea}>
+            <div className={styles.printHeader}>
+              <h1>ORDEN DE TRABAJO DE MANTENIMIENTO</h1>
+              <div className={styles.printOrderFolio}>OT-{detailItem.id.split('-')[0].toUpperCase()}</div>
+            </div>
+
+            <section className={styles.printSection}>
+              <h3 className={styles.printSectionTitle}>1. DATOS GENERALES</h3>
+              <div className={styles.printDataGrid}>
+                <p><strong>Activo:</strong> {detailItem.activo_nombre}</p>
+                <p><strong>Tipo:</strong> {detailItem.tipo}</p>
+                <p><strong>Prioridad:</strong> {detailItem.prioridad}</p>
+                <p><strong>Estado:</strong> {detailItem.estado}</p>
+                <p><strong>Fecha Programada:</strong> {new Date(detailItem.fecha_programada).toLocaleDateString()}</p>
+                <p><strong>Fecha Inicio:</strong> {detailItem.fecha_inicio ? new Date(detailItem.fecha_inicio).toLocaleString() : '---'}</p>
+                <p><strong>Costo Total:</strong> ${detailItem.costo || 0}</p>
+              </div>
+              <div style={{ marginTop: '15px', borderTop: '1px solid #ddd', paddingTop: '10px' }}>
+                <strong>Breve Descripción del Trabajo:</strong>
+                <p>{detailItem.descripcion}</p>
+              </div>
+            </section>
+
+            <section className={styles.printSection}>
+              <h3 className={styles.printSectionTitle}>2. SECCIÓN SOLICITANTE</h3>
+              <div className={styles.printDataGrid}>
+                <p><strong>Solicitado por:</strong> {detailItem.creado_por || 'Sistema'}</p>
+                <p><strong>Fecha de Creación:</strong> {new Date(detailItem.created_at).toLocaleString()}</p>
+              </div>
+            </section>
+
+            <section className={styles.printSection}>
+              <h3 className={styles.printSectionTitle}>3. ACTIVIDADES REALIZADAS</h3>
+              <table className={styles.printTable}>
+                <thead>
+                  <tr>
+                    <th>Actividad</th>
+                    <th>Fecha Inicio</th>
+                    <th>Fecha Finalización</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {actividades.length > 0 ? actividades.map(a => (
+                    <tr key={a.id}>
+                      <td>{a.descripcion}</td>
+                      <td>{a.fecha_inicio ? new Date(a.fecha_inicio).toLocaleString() : '---'}</td>
+                      <td>{a.fecha_fin ? new Date(a.fecha_fin).toLocaleString() : '---'}</td>
+                    </tr>
+                  )) : (
+                    <tr><td colSpan={3} style={{textAlign: 'center', padding: '20px'}}>No hay actividades registradas</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </section>
+
+            <section className={styles.printSection}>
+              <h3 className={styles.printSectionTitle}>4. MATERIALES Y REPUESTOS UTILIZADOS</h3>
+              <table className={styles.printTable}>
+                <thead>
+                  <tr>
+                    <th>Descripción Material</th>
+                    <th>Cantidad</th>
+                    <th>Precio Unit.</th>
+                    <th>Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.length > 0 ? (
+                    <>
+                      {items.map(i => (
+                        <tr key={i.id}>
+                          <td>{i.descripcion}</td>
+                          <td>{i.cantidad}</td>
+                          <td>${i.precio_unitario}</td>
+                          <td>${i.total}</td>
+                        </tr>
+                      ))}
+                      <tr style={{ background: '#f9fafb', fontWeight: 'bold' }}>
+                        <td colSpan={3} style={{ textAlign: 'right', padding: '10px' }}>TOTAL MATERIALES Y REPUESTOS:</td>
+                        <td style={{ padding: '10px' }}>${items.reduce((acc, curr) => acc + parseFloat(curr.total), 0).toFixed(2)}</td>
+                      </tr>
+                    </>
+                  ) : (
+                    <tr><td colSpan={4} style={{textAlign: 'center', padding: '20px'}}>No hay materiales registrados</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </section>
+
+            <div className={styles.printSignatures}>
+              <div className={styles.signatureField}>
+                <div className={styles.signatureLine}></div>
+                <p><strong>Firma Técnico Asignado</strong></p>
+                <p>{detailItem.tecnico_nombre || '____________________'}</p>
+              </div>
+              <div className={styles.signatureField}>
+                <div className={styles.signatureLine}></div>
+                <p><strong>Firma Jefe de Mantenimiento</strong></p>
+                <p>____________________</p>
               </div>
             </div>
           </div>

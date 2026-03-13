@@ -232,7 +232,8 @@
 }
 
 .modal {
-  width: 480px;
+  width: 550px;
+  max-width: 95%;
   padding: var(--spacing-xl);
   border-radius: var(--radius-lg);
   border: 1px solid var(--glass-border);

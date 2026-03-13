@@ -50,3 +50,20 @@ export interface Mantenimiento {
   costo: number;
   comentarios?: string;
 }
+
+export interface Actividad {
+  id: string;
+  mantenimiento_id: string;
+  descripcion: string;
+  fecha_inicio?: Date;
+  fecha_fin?: Date;
+}
+
+export interface ItemMantenimiento {
+  id: string;
+  mantenimiento_id: string;
+  descripcion: string;
+  cantidad: number;
+  precio_unitario: number;
+  total: number;
+}

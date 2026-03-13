@@ -9,10 +9,22 @@
   padding: var(--spacing-lg);
   gap: var(--spacing-xl);
   z-index: 100;
-  transition: var(--transition-normal);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), padding 0.3s ease;
+}
+
+.collapsed {
+  width: 80px;
+  padding: var(--spacing-lg) var(--spacing-sm);
 }
 
 .logo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.logoMain {
   display: flex;
   align-items: center;
   gap: var(--spacing-sm);
@@ -20,6 +32,35 @@
   font-weight: 800;
   color: var(--primary);
   letter-spacing: -0.025em;
+  overflow: hidden;
+}
+
+.collapseBtn {
+  color: var(--text-secondary);
+  opacity: 0.6;
+  transition: all 0.2s;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.collapseBtn:hover {
+  opacity: 1;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--primary);
+}
+
+.collapsed .navItem {
+  justify-content: center;
+  padding: var(--spacing-md) 0;
+}
+
+.collapsed .currentRole {
+  justify-content: center;
+}
+
+.collapsed .logoutBtn {
+  justify-content: center;
+  padding: var(--spacing-sm);
 }
 
 .nav {

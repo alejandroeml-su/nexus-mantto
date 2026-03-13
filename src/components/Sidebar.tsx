@@ -11,7 +11,9 @@ import {
   Settings, 
   Activity,
   LogOut,
-  ChevronDown
+  ChevronDown,
+  Menu,
+  ChevronLeft
 } from 'lucide-react';
 import { UserRole } from '@/lib/types';
 import { hasPermission } from '@/lib/permissions';
@@ -19,10 +21,10 @@ import styles from './Sidebar.module.css';
 
 const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard, permission: 'view_dashboard' },
-  { name: 'Bitácoras', href: '/bitacoras', icon: Activity, permission: 'view_bitacoras' },
   { name: 'Activos', href: '/activos', icon: Box, permission: 'view_activos' },
   { name: 'Mantenimiento', href: '/mantenimiento', icon: Calendar, permission: 'view_mantenimiento' },
   { name: 'Seguimiento', href: '/seguimiento', icon: Activity, permission: 'view_seguimiento' },
+  { name: 'Bitácoras', href: '/bitacoras', icon: Activity, permission: 'view_bitacoras' },
   { name: 'Configuración', href: '/configuracion/usuarios', icon: Settings, permission: 'view_configuracion' },
 ];
 
@@ -30,12 +32,27 @@ export default function Sidebar({ mobile }: { mobile?: boolean }) {
   const pathname = usePathname();
   const [role, setRole] = useState<UserRole>('SuperAdmin');
   const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
-  // Load role from localStorage for persistence in demo
+  // Load state from localStorage
   useEffect(() => {
     const savedRole = localStorage.getItem('user_role') as UserRole;
     if (savedRole) setRole(savedRole);
+    
+    const savedCollapsed = localStorage.getItem('sidebar_collapsed');
+    const initialCollapsed = savedCollapsed === 'true';
+    setIsCollapsed(initialCollapsed);
+    document.documentElement.style.setProperty('--sidebar-w', initialCollapsed ? '80px' : '260px');
   }, []);
+
+  const toggleCollapse = () => {
+    const newState = !isCollapsed;
+    setIsCollapsed(newState);
+    document.documentElement.style.setProperty('--sidebar-w', newState ? '80px' : '260px');
+    localStorage.setItem('sidebar_collapsed', String(newState));
+    // Emit event for other components to adjust if needed
+    window.dispatchEvent(new Event('sidebarToggle'));
+  };
 
   const changeRole = (newRole: UserRole) => {
     setRole(newRole);
@@ -59,10 +76,17 @@ export default function Sidebar({ mobile }: { mobile?: boolean }) {
   };
 
   return (
-    <aside className={`${styles.sidebar} ${mobile ? styles.mobile : ''} glass`}>
+    <aside className={`${styles.sidebar} ${isCollapsed ? styles.collapsed : ''} ${mobile ? styles.mobile : ''} glass`}>
       <div className={styles.logo}>
-        <Activity size={32} />
-        <span>NEXUS 4.0</span>
+        <div className={styles.logoMain}>
+           <Activity size={32} />
+           {!isCollapsed && <span>NEXUS 4.0</span>}
+        </div>
+        {!mobile && (
+          <button className={styles.collapseBtn} onClick={toggleCollapse}>
+            {isCollapsed ? <Menu size={20} /> : <ChevronLeft size={20} />}
+          </button>
+        )}
       </div>
 
       <nav className={styles.nav}>
@@ -75,9 +99,10 @@ export default function Sidebar({ mobile }: { mobile?: boolean }) {
               key={item.name} 
               href={item.href}
               className={`${styles.navItem} ${isActive ? styles.active : ''}`}
+              title={isCollapsed ? item.name : ''}
             >
               <Icon size={20} />
-              <span>{item.name}</span>
+              {!isCollapsed && <span>{item.name}</span>}
             </Link>
           );
         })}
@@ -87,20 +112,22 @@ export default function Sidebar({ mobile }: { mobile?: boolean }) {
         <div className={styles.roleSwitcher}>
           <button 
             className={styles.currentRole} 
-            onClick={() => setIsRoleMenuOpen(!isRoleMenuOpen)}
+            onClick={() => !isCollapsed && setIsRoleMenuOpen(!isRoleMenuOpen)}
           >
             <div className={styles.avatar} style={{ background: getRoleColor(role) }}>
               {role[0]}
             </div>
-            <div className={styles.roleInfo}>
-              <span className={styles.userName}>Usuario Demo</span>
-              <span className={styles.userRole} style={{ color: getRoleColor(role) }}>
-                {role} <ChevronDown size={12} />
-              </span>
-            </div>
+            {!isCollapsed && (
+              <div className={styles.roleInfo}>
+                <span className={styles.userName}>Usuario Demo</span>
+                <span className={styles.userRole} style={{ color: getRoleColor(role) }}>
+                  {role} <ChevronDown size={12} />
+                </span>
+              </div>
+            )}
           </button>
           
-          {isRoleMenuOpen && (
+          {isRoleMenuOpen && !isCollapsed && (
             <div className={`${styles.roleMenu} glass animate-fade-in`}>
               {(['SuperAdmin', 'Admin', 'Jefe', 'Técnico'] as UserRole[]).map(r => (
                 <button key={r} onClick={() => changeRole(r)} className={styles.roleOption}>
@@ -113,7 +140,7 @@ export default function Sidebar({ mobile }: { mobile?: boolean }) {
         
         <button className={styles.logoutBtn}>
           <LogOut size={18} />
-          <span>Cerrar Sesión</span>
+          {!isCollapsed && <span>Cerrar Sesión</span>}
         </button>
       </div>
     </aside>

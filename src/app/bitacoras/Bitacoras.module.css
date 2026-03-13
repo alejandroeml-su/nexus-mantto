@@ -295,6 +295,7 @@
 .detailModal {
   width: 900px;
   max-width: 95%;
+  max-height: 90vh;
   background: #1a1b23;
   padding: var(--spacing-xl);
   border-radius: var(--radius-lg);
@@ -302,6 +303,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-lg);
+  overflow: hidden;
 }
 
 .modalHeader {
@@ -324,9 +326,25 @@
 }
 
 .detailGrid {
-  display: grid;
-  grid-template-columns: 1fr 1.5fr;
+  display: flex;
+  flex-direction: column;
   gap: var(--spacing-xl);
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.detailGrid::-webkit-scrollbar {
+  width: 6px;
+}
+
+.detailGrid::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 10px;
+}
+
+.detailGrid::-webkit-scrollbar-thumb {
+  background: var(--glass-border);
+  border-radius: 10px;
 }
 
 .infoSection h3, .trackingSection h3 {
@@ -339,6 +357,7 @@
 .infoRow {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   padding: 8px 0;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   font-size: 0.9375rem;
@@ -424,7 +443,8 @@
 
 .formGrid {
   display: grid;
-  gap: var(--spacing-sm);
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-md);
 }
 
 .editableTextArea {

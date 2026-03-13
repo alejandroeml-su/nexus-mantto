@@ -141,9 +141,10 @@ input, select, textarea {
 }
 
 .desktop-sidebar {
-  width: 260px;
+  width: var(--sidebar-w, 260px);
+  min-width: 0;
   flex-shrink: 0;
-  transition: var(--transition-normal);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .content-wrapper {
