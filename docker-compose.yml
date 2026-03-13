@@ -2,16 +2,22 @@ services:
   nexus-mantto:
     container_name: nexus-mantto-app
     build: .
+    restart: always
     ports:
       - "3000:3000"
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/mantto
+      - NODE_ENV=production
     depends_on:
       db:
         condition: service_healthy
+    networks:
+      - nexus-network
 
   db:
     image: postgres:15-alpine
+    container_name: nexus-mantto-db
+    restart: always
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
@@ -21,11 +27,21 @@ services:
       - ./src/db/schema.sql:/docker-entrypoint-initdb.d/schema.sql
     ports:
       - "5432:5432"
+    networks:
+      - nexus-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d mantto"]
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+networks:
+  nexus-network:
+    driver: bridge
 
 volumes:
   postgres_data:
