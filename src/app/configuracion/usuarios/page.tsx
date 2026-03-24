@@ -14,6 +14,7 @@ export default function ConfigUsuariosPage() {
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [editingUser, setEditingUser] = useState<any | null>(null);
   const [formData, setFormData] = useState({ nombre: '', email: '', rol: 'Técnico', departamento_id: '', password: '' });
+  const [error, setError] = useState('');
 
   useEffect(() => {
     loadUsuarios();
@@ -26,25 +27,34 @@ export default function ConfigUsuariosPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (editingUser) {
-      await updateUsuario(editingUser.id, formData);
-    } else {
-      await createUsuario(formData);
+    setError('');
+    try {
+      if (editingUser) {
+        await updateUsuario(editingUser.id, formData);
+      } else {
+        await createUsuario(formData);
+      }
+      closeModal();
+      loadUsuarios();
+    } catch (err: any) {
+      setError(err.message || 'Error al guardar el usuario');
     }
-    closeModal();
-    loadUsuarios();
   }
 
   function handleEdit(user: any) {
     setEditingUser(user);
-    setFormData({ nombre: user.nombre, email: user.email, rol: user.rol, departamento_id: user.departamento_id || '', password: '' });
+    setFormData({ nombre: user.nombre, email: user.email, rol: user.rol === 'SuperAdmin' ? 'Super Admin' : user.rol, departamento_id: user.departamento_id || '', password: '' });
     setIsModalOpen(true);
   }
 
   async function handleDelete(id: string) {
-    if (confirm('¿Eliminar este usuario?')) {
-      await deleteUsuario(id);
-      loadUsuarios();
+    try {
+      if (confirm('¿Eliminar este usuario?')) {
+        await deleteUsuario(id);
+        loadUsuarios();
+      }
+    } catch (err: any) {
+      alert(err.message || 'Error al eliminar');
     }
   }
 
@@ -52,6 +62,7 @@ export default function ConfigUsuariosPage() {
     setIsModalOpen(false);
     setEditingUser(null);
     setFormData({ nombre: '', email: '', rol: 'Técnico', departamento_id: '', password: '' });
+    setError('');
   }
 
   if (!hasPermission('manage_usuarios') && role !== 'SuperAdmin') {
@@ -181,6 +192,13 @@ export default function ConfigUsuariosPage() {
         <div className={styles.modalOverlay}>
           <div className={`${styles.modal} glass animate-fade-in`}>
             <h2>{editingUser ? 'Editar Usuario' : 'Nuevo Usuario'}</h2>
+            
+            {error && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-200">
+                {error}
+              </div>
+            )}
+            
             <form className={styles.form} onSubmit={handleSubmit}>
               <div className={styles.formGroup}>
                 <label>Nombre Completo</label>
@@ -203,7 +221,7 @@ export default function ConfigUsuariosPage() {
                     <option value="Técnico">Técnico</option>
                     <option value="Jefe">Jefe</option>
                     <option value="Admin">Admin</option>
-                    <option value="SuperAdmin">SuperAdmin</option>
+                    <option value="Super Admin">Super Admin</option>
                   </select>
                 </div>
               </div>

@@ -245,17 +245,19 @@ export async function getUsuarios() {
 
 export async function createUsuario(data: { nombre: string; email: string; rol: string; departamento_id?: string; password?: string }) {
   const hashedPassword = data.password ? await bcrypt.hash(data.password, 10) : null;
+  const deptoId = data.departamento_id || null;
   await query(
     'INSERT INTO usuarios (nombre, email, rol, departamento_id, password) VALUES ($1, $2, $3, $4, $5)',
-    [data.nombre, data.email, data.rol, data.departamento_id, hashedPassword]
+    [data.nombre, data.email, data.rol, deptoId, hashedPassword]
   );
   revalidatePath('/configuracion/usuarios');
 }
 
 export async function updateUsuario(id: string, data: { nombre: string; email: string; rol: string; departamento_id?: string }) {
+  const deptoId = data.departamento_id || null;
   await query(
     'UPDATE usuarios SET nombre = $1, email = $2, rol = $3, departamento_id = $4 WHERE id = $5',
-    [data.nombre, data.email, data.rol, data.departamento_id, id]
+    [data.nombre, data.email, data.rol, deptoId, id]
   );
   revalidatePath('/configuracion/usuarios');
 }
