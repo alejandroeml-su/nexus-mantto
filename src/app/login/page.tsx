@@ -23,6 +23,7 @@ export default function LoginPage() {
       if (res.success) {
         // Para compatibilidad con useRole actual
         localStorage.setItem('user_role', res.user.rol);
+        localStorage.setItem('user_name', res.user.nombre);
         router.push('/dashboard');
       }
     } catch (err: any) {

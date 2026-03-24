@@ -32,8 +32,9 @@ const PERMISSIONS: Record<UserRole, Permission[]> = {
   ]
 };
 
-export function hasPermission(role: UserRole, permission: Permission): boolean {
-  return PERMISSIONS[role]?.includes(permission) ?? false;
+export function hasPermission(role: string, permission: Permission): boolean {
+  if (role === 'Super Admin') role = 'SuperAdmin';
+  return PERMISSIONS[role as UserRole]?.includes(permission) ?? false;
 }
 
 export function getVisibleNavItems(role: UserRole, navItems: any[]) {

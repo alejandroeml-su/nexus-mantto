@@ -31,13 +31,19 @@ const navItems = [
 export default function Sidebar({ mobile }: { mobile?: boolean }) {
   const pathname = usePathname();
   const [role, setRole] = useState<UserRole>('SuperAdmin');
+  const [userName, setUserName] = useState('Usuario Demo');
   const [isRoleMenuOpen, setIsRoleMenuOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Load state from localStorage
   useEffect(() => {
-    const savedRole = localStorage.getItem('user_role') as UserRole;
-    if (savedRole) setRole(savedRole);
+    const savedRole = localStorage.getItem('user_role') as string;
+    if (savedRole) {
+      setRole(savedRole === 'Super Admin' ? 'SuperAdmin' : savedRole as UserRole);
+    }
+    
+    const savedName = localStorage.getItem('user_name');
+    if (savedName) setUserName(savedName);
     
     const savedCollapsed = localStorage.getItem('sidebar_collapsed');
     const initialCollapsed = savedCollapsed === 'true';
@@ -119,7 +125,7 @@ export default function Sidebar({ mobile }: { mobile?: boolean }) {
             </div>
             {!isCollapsed && (
               <div className={styles.roleInfo}>
-                <span className={styles.userName}>Usuario Demo</span>
+                <span className={styles.userName}>{userName}</span>
                 <span className={styles.userRole} style={{ color: getRoleColor(role) }}>
                   {role} <ChevronDown size={12} />
                 </span>
