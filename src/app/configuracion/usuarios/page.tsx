@@ -13,7 +13,7 @@ export default function ConfigUsuariosPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [editingUser, setEditingUser] = useState<any | null>(null);
-  const [formData, setFormData] = useState({ nombre: '', email: '', rol: 'Técnico', departamento_id: '' });
+  const [formData, setFormData] = useState({ nombre: '', email: '', rol: 'Técnico', departamento_id: '', password: '' });
 
   useEffect(() => {
     loadUsuarios();
@@ -37,7 +37,7 @@ export default function ConfigUsuariosPage() {
 
   function handleEdit(user: any) {
     setEditingUser(user);
-    setFormData({ nombre: user.nombre, email: user.email, rol: user.rol, departamento_id: user.departamento_id || '' });
+    setFormData({ nombre: user.nombre, email: user.email, rol: user.rol, departamento_id: user.departamento_id || '', password: '' });
     setIsModalOpen(true);
   }
 
@@ -51,7 +51,7 @@ export default function ConfigUsuariosPage() {
   function closeModal() {
     setIsModalOpen(false);
     setEditingUser(null);
-    setFormData({ nombre: '', email: '', rol: 'Técnico', departamento_id: '' });
+    setFormData({ nombre: '', email: '', rol: 'Técnico', departamento_id: '', password: '' });
   }
 
   if (!hasPermission('manage_usuarios') && role !== 'SuperAdmin') {
@@ -190,6 +190,12 @@ export default function ConfigUsuariosPage() {
                 <label>Correo Electrónico</label>
                 <input type="email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="correo@empresa.com" required />
               </div>
+              {!editingUser && (
+                <div className={styles.formGroup}>
+                  <label>Contraseña</label>
+                  <input type="text" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="Contraseña inicial" required />
+                </div>
+              )}
               <div className={styles.formGrid}>
                 <div className={styles.formGroup}>
                   <label>Rol de Acceso</label>

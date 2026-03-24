@@ -3,6 +3,12 @@
 import { query } from '@/lib/db';
 import { Activo, Mantenimiento } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
+import * as bcrypt from 'bcryptjs';
+import { SignJWT, jwtVerify } from 'jose';
+
+const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'nexus-super-secret-key-12345');
+
 
 // Helper to get ID from Name in catalogs
 async function getCatalogId(table: string, name: string): Promise<string | null> {
@@ -237,10 +243,11 @@ export async function getUsuarios() {
   `)).rows;
 }
 
-export async function createUsuario(data: { nombre: string; email: string; rol: string; departamento_id?: string }) {
+export async function createUsuario(data: { nombre: string; email: string; rol: string; departamento_id?: string; password?: string }) {
+  const hashedPassword = data.password ? await bcrypt.hash(data.password, 10) : null;
   await query(
-    'INSERT INTO usuarios (nombre, email, rol, departamento_id) VALUES ($1, $2, $3, $4)',
-    [data.nombre, data.email, data.rol, data.departamento_id]
+    'INSERT INTO usuarios (nombre, email, rol, departamento_id, password) VALUES ($1, $2, $3, $4, $5)',
+    [data.nombre, data.email, data.rol, data.departamento_id, hashedPassword]
   );
   revalidatePath('/configuracion/usuarios');
 }
@@ -257,6 +264,87 @@ export async function deleteUsuario(id: string) {
   await query('DELETE FROM usuarios WHERE id = $1', [id]);
   revalidatePath('/configuracion/usuarios');
 }
+
+// Authentication Actions
+
+export async function login(email: string, password_input: string) {
+  const res = await query('SELECT * FROM usuarios WHERE email = $1', [email]);
+  const user = res.rows[0];
+
+  if (!user || !user.password) {
+    throw new Error('Credenciales inválidas');
+  }
+
+  const isValid = await bcrypt.compare(password_input, user.password);
+  if (!isValid) {
+    throw new Error('Credenciales inválidas');
+  }
+
+  // Create token
+  const token = await new SignJWT({ id: user.id, email: user.email, rol: user.rol })
+    .setProtectedHeader({ alg: 'HS256' })
+    .setExpirationTime('1d')
+    .sign(JWT_SECRET);
+
+  const cookieStore = await cookies();
+  cookieStore.set('session', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 24 // 1 day
+  });
+
+  return { success: true, user: { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol } };
+}
+
+export async function logout() {
+  const cookieStore = await cookies();
+  cookieStore.delete('session');
+  return { success: true };
+}
+
+export async function requestPasswordReset(email: string) {
+  const res = await query('SELECT id FROM usuarios WHERE email = $1', [email]);
+  if (res.rows.length === 0) {
+    // Return generic success to prevent email enumeration
+    return { success: true, message: 'Si el correo existe, se han enviado las instrucciones.' };
+  }
+  
+  // Generate token (UUID)
+  const token = crypto.randomUUID();
+  const expiry = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+  
+  await query(
+    'UPDATE usuarios SET reset_token = $1, reset_token_expiry = $2 WHERE email = $3',
+    [token, expiry, email]
+  );
+  
+  // In a real app we'd send an email. For now, we return it to display it.
+  return { success: true, token, email };
+}
+
+export async function resetPassword(token: string, newPassword: string) {
+  const res = await query(
+    'SELECT id FROM usuarios WHERE reset_token = $1 AND reset_token_expiry > NOW()',
+    [token]
+  );
+  
+  if (res.rows.length === 0) {
+    throw new Error('El enlace de recuperación es inválido o ha expirado.');
+  }
+  
+  const userId = res.rows[0].id;
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  
+  await query(
+    'UPDATE usuarios SET password = $1, reset_token = NULL, reset_token_expiry = NULL WHERE id = $2',
+    [hashedPassword, userId]
+  );
+  
+  return { success: true };
+}
+
 
 export async function getUbicaciones() {
     return (await query(`
