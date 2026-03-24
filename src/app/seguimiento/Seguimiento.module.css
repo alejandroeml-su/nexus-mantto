@@ -333,10 +333,16 @@
   margin-top: var(--spacing-lg);
 }
 
-.formGrid {
+.createFormGrid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--spacing-md);
+}
+
+@media (max-width: 600px) {
+  .createFormGrid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .formGroup {

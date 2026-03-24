@@ -405,7 +405,7 @@ export default function SeguimientoPage() {
           <div className={`${styles.modal} glass animate-fade-in`}>
             <h2>Crear Nueva Orden de Trabajo</h2>
             <form className={styles.form} onSubmit={handleSubmit}>
-              <div className={styles.formGrid}>
+              <div className={styles.createFormGrid}>
                 <div className={styles.formGroup}>
                   <label>Activo</label>
                   <select value={formData.activo_id} onChange={e => setFormData({...formData, activo_id: e.target.value})} required>
