@@ -65,7 +65,7 @@ import BackButton from '@/components/BackButton';
 import QRModal from '@/components/Activos/QRModal';
 import styles from './Activos.module.css';
 
-export default function ActivosPage() {
+function ActivosContent() {
   const { role, hasPermission } = useRole();
   const searchParams = useSearchParams();
   const estadoFilter = searchParams.get('estado');
@@ -968,9 +968,12 @@ export default function ActivosPage() {
               </div>
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Printable Area for Assets Work Order */}
-          <div className={styles.printableArea}>
+      {/* Printable Area for Assets Work Order */}
+      {detailItem && (
+        <div className={styles.printableArea}>
             <div className={styles.printHeader}>
               <h1>ORDEN DE TRABAJO DE MANTENIMIENTO</h1>
               <div className={styles.printOrderFolio}>OT-{detailItem.id.split('-')[0].toUpperCase()}</div>
@@ -1071,9 +1074,16 @@ export default function ActivosPage() {
                 <p>____________________</p>
               </div>
             </div>
-          </div>
         </div>
       )}
     </div>
+  );
+}
+
+export default function ActivosPage() {
+  return (
+    <React.Suspense fallback={<div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-secondary)' }}>Cargando activos...</div>}>
+      <ActivosContent />
+    </React.Suspense>
   );
 }

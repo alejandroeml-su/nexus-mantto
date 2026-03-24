@@ -738,6 +738,8 @@
   :global(.actionBar),
   :global(.viewToggle),
   :global(.back-btn),
+  .header,
+  .actionBar,
   .modalHeader, 
   .subTabs,
   .tabContent,
