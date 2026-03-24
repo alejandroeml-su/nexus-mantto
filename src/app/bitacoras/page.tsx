@@ -17,7 +17,12 @@ import {
   Image as ImageIcon,
   Download,
   Upload,
-  X
+  X,
+  Briefcase,
+  Package,
+  Trash,
+  PlusCircle,
+  Clock
 } from 'lucide-react';
 import { 
   getMantenimientos, 
@@ -27,7 +32,13 @@ import {
   updateMantenimiento, 
   getHistorialMantenimiento,
   getEvidencias,
-  addEvidencia
+  addEvidencia,
+  getActividades,
+  addActividad,
+  deleteActividad,
+  getItems,
+  addItem,
+  deleteItem
 } from '@/lib/actions';
 import { useRole } from '@/lib/useRole';
 import BackButton from '@/components/BackButton';
@@ -41,9 +52,13 @@ export default function BitacorasPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [detailItem, setDetailItem] = useState<any | null>(null);
   const [newComment, setNewComment] = useState('');
-  const [activeSubTab, setActiveSubTab] = useState<'seguimiento' | 'historial' | 'evidencias'>('seguimiento');
+  const [activeSubTab, setActiveSubTab] = useState<'seguimiento' | 'actividades' | 'items' | 'evidencias' | 'historial'>('seguimiento');
   const [historial, setHistorial] = useState<any[]>([]);
   const [evidencias, setEvidencias] = useState<any[]>([]);
+  const [actividades, setActividades] = useState<any[]>([]);
+  const [items, setItems] = useState<any[]>([]);
+  const [activityForm, setActivityForm] = useState({ descripcion: '', fecha_inicio: '', fecha_fin: '' });
+  const [itemForm, setItemForm] = useState({ descripcion: '', cantidad: 1, precio_unitario: 0 });
 
   const [formData, setFormData] = useState({
     activo_id: '',
@@ -77,13 +92,47 @@ export default function BitacorasPage() {
   }
 
   async function loadExtraInfo(id: string) {
-    const [h, e] = await Promise.all([
+    const [h, e, a, i] = await Promise.all([
       getHistorialMantenimiento(id),
-      getEvidencias(id)
+      getEvidencias(id),
+      getActividades(id),
+      getItems(id)
     ]);
     setHistorial(h);
     setEvidencias(e);
+    setActividades(a);
+    setItems(i);
   }
+
+  const handleAddActivity = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!detailItem) return;
+    await addActividad({ ...activityForm, mantenimiento_id: detailItem.id });
+    setActivityForm({ descripcion: '', fecha_inicio: '', fecha_fin: '' });
+    loadExtraInfo(detailItem.id);
+  };
+
+  const handleDeleteActivity = async (id: string) => {
+    if (confirm('¿Eliminar actividad?')) {
+        await deleteActividad(id);
+        loadExtraInfo(detailItem.id);
+    }
+  };
+
+  const handleAddItem = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!detailItem) return;
+    await addItem({ ...itemForm, mantenimiento_id: detailItem.id });
+    setItemForm({ descripcion: '', cantidad: 1, precio_unitario: 0 });
+    loadExtraInfo(detailItem.id);
+  };
+
+  const handleDeleteItem = async (id: string) => {
+    if (confirm('¿Eliminar item?')) {
+        await deleteItem(id, detailItem.id);
+        loadExtraInfo(detailItem.id);
+    }
+  };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -344,26 +393,20 @@ export default function BitacorasPage() {
 
               <div className={styles.trackingSection}>
                 <div className={styles.subTabs}>
-                    <button 
-                        className={`${styles.subTab} ${activeSubTab === 'seguimiento' ? styles.activeSubTab : ''}`}
-                        onClick={() => setActiveSubTab('seguimiento')}
-                    >
-                        <MessageSquare size={16} />
-                        Seguimiento
+                    <button className={`${styles.subTab} ${activeSubTab === 'seguimiento' ? styles.activeSubTab : ''}`} onClick={() => setActiveSubTab('seguimiento')}>
+                        <MessageSquare size={16} /> Seguimiento
                     </button>
-                    <button 
-                        className={`${styles.subTab} ${activeSubTab === 'evidencias' ? styles.activeSubTab : ''}`}
-                        onClick={() => setActiveSubTab('evidencias')}
-                    >
-                        <Paperclip size={16} />
-                        Evidencias
+                    <button className={`${styles.subTab} ${activeSubTab === 'actividades' ? styles.activeSubTab : ''}`} onClick={() => setActiveSubTab('actividades')}>
+                        <Briefcase size={16} /> Actividades
                     </button>
-                    <button 
-                        className={`${styles.subTab} ${activeSubTab === 'historial' ? styles.activeSubTab : ''}`}
-                        onClick={() => setActiveSubTab('historial')}
-                    >
-                        <History size={16} />
-                        Historial
+                    <button className={`${styles.subTab} ${activeSubTab === 'items' ? styles.activeSubTab : ''}`} onClick={() => setActiveSubTab('items')}>
+                        <Package size={16} /> Materiales
+                    </button>
+                    <button className={`${styles.subTab} ${activeSubTab === 'evidencias' ? styles.activeSubTab : ''}`} onClick={() => setActiveSubTab('evidencias')}>
+                        <Paperclip size={16} /> Evidencias
+                    </button>
+                    <button className={`${styles.subTab} ${activeSubTab === 'historial' ? styles.activeSubTab : ''}`} onClick={() => setActiveSubTab('historial')}>
+                        <History size={16} /> Auditoría
                     </button>
                 </div>
 
@@ -383,6 +426,107 @@ export default function BitacorasPage() {
                             required
                         />
                         <button type="submit" className={styles.saveBtn}>Guardar Notas</button>
+                        </form>
+                    </div>
+                )}
+
+                {activeSubTab === 'actividades' && (
+                    <div className={styles.tabContent}>
+                        <div className={styles.historyList} style={{ height: '250px' }}>
+                            {actividades.map((a) => (
+                                <div key={a.id} className={styles.historyItem} style={{ borderLeftColor: 'var(--primary)' }}>
+                                    <div className={styles.historyHeader}>
+                                        <span style={{ fontWeight: 700 }}>{a.descripcion}</span>
+                                        <button onClick={() => handleDeleteActivity(a.id)} className={styles.deleteBtn}><Trash size={14} /></button>
+                                    </div>
+                                    <div className={styles.logMeta}>
+                                        <Clock size={12} style={{ display: 'inline', marginRight: '4px' }} />
+                                        <span>{a.fecha_inicio ? new Date(a.fecha_inicio).toLocaleString() : '---'} a {a.fecha_fin ? new Date(a.fecha_fin).toLocaleString() : '---'}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <form className={styles.quickForm} onSubmit={handleAddActivity}>
+                            <input type="text" placeholder="Nueva actividad..." value={activityForm.descripcion} onChange={e => setActivityForm({...activityForm, descripcion: e.target.value})} required />
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                                <input type="datetime-local" value={activityForm.fecha_inicio} onChange={e => setActivityForm({...activityForm, fecha_inicio: e.target.value})} required />
+                                <input type="datetime-local" value={activityForm.fecha_fin} onChange={e => setActivityForm({...activityForm, fecha_fin: e.target.value})} required />
+                            </div>
+                            <button type="submit" className={styles.saveBtn}><PlusCircle size={14} /> Agregar Actividad</button>
+                        </form>
+                    </div>
+                )}
+
+                {activeSubTab === 'items' && (
+                    <div className={styles.tabContent}>
+                        <div className={styles.tableWrapper} style={{ height: '250px', overflowY: 'auto', marginBottom: '15px' }}>
+                            <table className={styles.miniTable}>
+                                <thead>
+                                    <tr>
+                                        <th>Descripción</th>
+                                        <th>Cant</th>
+                                        <th>P.U.</th>
+                                        <th>Total</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {items.map((i) => (
+                                        <tr key={i.id}>
+                                            <td>{i.descripcion}</td>
+                                            <td>{i.cantidad}</td>
+                                            <td>${i.precio_unitario}</td>
+                                            <td style={{ fontWeight: 700 }}>${i.total}</td>
+                                            <td><button onClick={() => handleDeleteItem(i.id)} className={styles.deleteBtn}><Trash size={14} /></button></td>
+                                        </tr>
+                                    ))}
+                                    {items.length > 0 && (
+                                        <tr className={styles.totalRow}>
+                                            <td colSpan={3} style={{textAlign: 'right', paddingRight: '15px'}}>COSTO TOTAL MATERIALES:</td>
+                                            <td colSpan={2}>${items.reduce((acc, curr) => acc + parseFloat(curr.total), 0).toFixed(2)}</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                        <form className={styles.quickForm} onSubmit={handleAddItem}>
+                            <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-end' }}>
+                                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                    <label style={{fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)'}}>Descripción Material</label>
+                                    <input type="text" placeholder="Repuesto / Insumo..." value={itemForm.descripcion} onChange={e => setItemForm({...itemForm, descripcion: e.target.value})} required />
+                                </div>
+                                <div style={{ width: '80px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                    <label style={{fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)'}}>Cant.</label>
+                                    <input 
+                                        type="number" 
+                                        step="0.01" 
+                                        placeholder="0" 
+                                        style={{ width: '100%' }}
+                                        value={isNaN(itemForm.cantidad) ? '' : itemForm.cantidad} 
+                                        onChange={e => setItemForm({...itemForm, cantidad: e.target.value === '' ? 0 : parseFloat(e.target.value)})} 
+                                        required 
+                                    />
+                                </div>
+                                <div style={{ width: '110px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                    <label style={{fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)'}}>P. Unit</label>
+                                    <input 
+                                        type="number" 
+                                        step="0.01" 
+                                        placeholder="0.00" 
+                                        style={{ width: '100%' }}
+                                        value={isNaN(itemForm.precio_unitario) ? '' : itemForm.precio_unitario} 
+                                        onChange={e => setItemForm({...itemForm, precio_unitario: e.target.value === '' ? 0 : parseFloat(e.target.value)})} 
+                                        required 
+                                    />
+                                </div>
+                                <div style={{ width: '100px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                                    <label style={{fontSize: '0.75rem', fontWeight: '700', color: 'var(--text-secondary)'}}>Subtotal</label>
+                                    <span style={{fontWeight: '800', fontSize: '1.1rem', color: 'var(--primary)', padding: '10px 0'}}>${(itemForm.cantidad * itemForm.precio_unitario).toFixed(2)}</span>
+                                </div>
+                                <button type="submit" className={styles.saveBtn} style={{height: '42px', padding: '0 15px'}}>
+                                    <PlusCircle size={18} />
+                                </button>
+                            </div>
                         </form>
                     </div>
                 )}
