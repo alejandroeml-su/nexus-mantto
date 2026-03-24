@@ -74,8 +74,11 @@ CREATE TABLE IF NOT EXISTS usuarios (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     nombre VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE NOT NULL,
-    rol VARCHAR(50) CHECK (rol IN ('SuperAdmin', 'Admin', 'Jefe', 'Técnico')),
+    rol VARCHAR(50) CHECK (rol IN ('Super Admin', 'Admin', 'Jefe', 'Técnico')),
     departamento_id UUID REFERENCES departamentos(id),
+    password VARCHAR(255),
+    reset_token VARCHAR(255),
+    reset_token_expiry TIMESTAMP WITH TIME ZONE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
