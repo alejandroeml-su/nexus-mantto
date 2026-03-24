@@ -5,6 +5,7 @@ import { Plus, Edit2, Trash2, Search, Box } from 'lucide-react';
 import { getActivos, createActivo, updateActivo, deleteActivo, getSedes } from '@/lib/actions';
 import { Activo, Sede } from '@/lib/types';
 import BackButton from '@/components/BackButton';
+import ConfigNav from '@/components/ConfigNav';
 import styles from './ConfigActivos.module.css';
 
 export default function ConfigActivosPage() {
@@ -68,13 +69,21 @@ export default function ConfigActivosPage() {
   return (
     <div className="animate-fade-in">
       <BackButton />
-      <header className={styles.header}>
-        <h1 className={styles.title}>Gestión Maestra de Activos</h1>
+      <header className={styles.header} style={{ marginBottom: '15px' }}>
+        <div>
+          <h1 className={styles.title}>Configuración del Sistema</h1>
+          <p className={styles.subtitle} style={{ color: 'var(--text-secondary)' }}>Gestión de catálogos maestros y activos.</p>
+        </div>
+      </header>
+      
+      <ConfigNav />
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '20px' }}>
         <button className={`${styles.addButton} glass`} onClick={() => setIsModalOpen(true)}>
           <Plus size={20} />
           <span>Registrar Activo</span>
         </button>
-      </header>
+      </div>
 
       <section className={`${styles.actionBar} glass`}>
         <div className={styles.searchWrapper}>

@@ -5,6 +5,7 @@ import { UserPlus, Shield, Mail, Edit, Trash2, Key, Check, X } from 'lucide-reac
 import { getUsuarios, createUsuario, updateUsuario, deleteUsuario } from '@/lib/actions';
 import { useRole } from '@/lib/useRole';
 import BackButton from '@/components/BackButton';
+import ConfigNav from '@/components/ConfigNav';
 import styles from './ConfigUsuarios.module.css';
 
 export default function ConfigUsuariosPage() {
@@ -73,13 +74,17 @@ export default function ConfigUsuariosPage() {
     <div className="animate-fade-in">
       <BackButton />
       
-      <header className={styles.header}>
+      <header className={styles.header} style={{ marginBottom: '15px' }}>
         <div>
           <h1 className={styles.title}>Configuración del Sistema</h1>
           <p className={styles.subtitle}>Gestión de identidades, accesos y permisos globales.</p>
         </div>
-        <div className={styles.tabActions}>
-          <div className={styles.tabs}>
+      </header>
+      
+      <ConfigNav />
+
+      <div className={styles.tabActions}>
+        <div className={styles.tabs}>
             {role === 'SuperAdmin' && (
               <button 
                 className={`${styles.tab} ${activeTab === 'usuarios' ? styles.activeTab : ''}`}
@@ -102,7 +107,6 @@ export default function ConfigUsuariosPage() {
             </button>
           )}
         </div>
-      </header>
 
       {activeTab === 'usuarios' ? (
         <div className={styles.userGrid}>

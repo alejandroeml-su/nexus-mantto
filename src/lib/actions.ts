@@ -217,21 +217,51 @@ export async function getHistorialMantenimiento(id: string) {
   return (await query('SELECT * FROM historial_cambios WHERE mantenimiento_id = $1 ORDER BY fecha_cambio DESC', [id])).rows;
 }
 
-export async function getSedes() { return (await query('SELECT * FROM sedes ORDER BY nombre ASC')).rows; }
-
-export async function createSede(nombre: string, direccion: string) {
-  await query('INSERT INTO sedes (nombre, direccion) VALUES ($1, $2)', [nombre, direccion]);
-  revalidatePath('/configuracion/sedes');
+export async function getSedes() { 
+  return (await query(`
+    SELECT s.*, p.nombre as pais_nombre 
+    FROM sedes s 
+    LEFT JOIN paises p ON s.pais_id = p.id 
+    ORDER BY s.nombre ASC
+  `)).rows; 
 }
 
-export async function updateSede(id: string, nombre: string, direccion: string) {
-  await query('UPDATE sedes SET nombre = $1, direccion = $2 WHERE id = $3', [nombre, direccion, id]);
-  revalidatePath('/configuracion/sedes');
+export async function createSede(nombre: string, direccion: string, pais_id?: string) {
+  await query('INSERT INTO sedes (nombre, direccion, pais_id) VALUES ($1, $2, $3)', [nombre, direccion, pais_id || null]);
+  revalidatePath('/configuracion/ubicaciones');
+}
+
+export async function updateSede(id: string, nombre: string, direccion: string, pais_id?: string) {
+  await query('UPDATE sedes SET nombre = $1, direccion = $2, pais_id = $3 WHERE id = $4', [nombre, direccion, pais_id || null, id]);
+  revalidatePath('/configuracion/ubicaciones');
 }
 
 export async function deleteSede(id: string) {
   await query('DELETE FROM sedes WHERE id = $1', [id]);
-  revalidatePath('/configuracion/sedes');
+  revalidatePath('/configuracion/ubicaciones');
+}
+
+export async function getPaises() {
+  return (await query('SELECT * FROM paises ORDER BY nombre ASC')).rows;
+}
+
+export async function createPais(nombre: string, codigo: string) {
+  await query('INSERT INTO paises (nombre, codigo) VALUES ($1, $2)', [nombre, codigo]);
+  revalidatePath('/configuracion/ubicaciones');
+}
+
+export async function updatePais(id: string, nombre: string, codigo: string) {
+  await query('UPDATE paises SET nombre = $1, codigo = $2 WHERE id = $3', [nombre, codigo, id]);
+  revalidatePath('/configuracion/ubicaciones');
+}
+
+export async function deletePais(id: string) {
+  const check = await query('SELECT COUNT(*) FROM sedes WHERE pais_id = $1', [id]);
+  if (parseInt(check.rows[0].count) > 0) {
+    throw new Error('No se puede eliminar el país porque tiene sedes asignadas.');
+  }
+  await query('DELETE FROM paises WHERE id = $1', [id]);
+  revalidatePath('/configuracion/ubicaciones');
 }
 
 export async function getUsuarios() {

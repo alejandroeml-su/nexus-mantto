@@ -1,33 +1,6 @@
-Injecting Super Admin...
-(node:35256) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
-In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
-
-To prepare for this change:
-- If you want the current behavior, explicitly use 'sslmode=verify-full'
-- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
-
-See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
-(Use `node --trace-warnings ...` to show where the warning was created)
-(node:35256) Warning: Setting the NODE_TLS_REJECT_UNAUTHORIZED environment variable to '0' makes TLS connections and HTTPS requests insecure by disabling certificate verification.
-Error injecting user: error: column "password" of relation "usuarios" does not exist
+[dotenv@17.3.1] injecting env (1) from .env.local -- tip: ΓÜÖ∩╕Å  enable debug logging with { debug: true }
+Starting migration for Pa├¡ses...
+Migration error: Error: The server does not support SSL connections
     at C:\proyecto\AppMantto\nexus-mantto\node_modules\pg-pool\index.js:45:11
     at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
-    at async inject (C:\proyecto\AppMantto\nexus-mantto\scripts\inject_admin.js:26:5) {
-  length: 129,
-  severity: 'ERROR',
-  code: '42703',
-  detail: undefined,
-  hint: undefined,
-  position: '43',
-  internalPosition: undefined,
-  internalQuery: undefined,
-  where: undefined,
-  schema: undefined,
-  table: undefined,
-  column: undefined,
-  dataType: undefined,
-  constraint: undefined,
-  file: 'parse_target.c',
-  line: '1065',
-  routine: 'checkInsertTargets'
-}
+    at async migrate (C:\proyecto\AppMantto\nexus-mantto\scripts\migrate_paises.js:13:5)
