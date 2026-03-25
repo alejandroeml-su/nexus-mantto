@@ -49,13 +49,18 @@ export default function ConfigUbicacionesPage() {
   // --- Pais Functions ---
   async function handlePaisSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (editingPais) {
-      await updatePais(editingPais.id, paisFormData.nombre, paisFormData.codigo);
-    } else {
-      await createPais(paisFormData.nombre, paisFormData.codigo);
+    try {
+      if (editingPais) {
+        await updatePais(editingPais.id, paisFormData.nombre, paisFormData.codigo);
+      } else {
+        await createPais(paisFormData.nombre, paisFormData.codigo);
+      }
+      setIsPaisModalOpen(false);
+      setPaisFormData({ nombre: '', codigo: '' });
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Error al guardar el país');
     }
-    setIsPaisModalOpen(false);
-    loadData();
   }
 
   function handlePaisEdit(pais: Pais) {
@@ -78,13 +83,18 @@ export default function ConfigUbicacionesPage() {
   // --- Sede Functions ---
   async function handleSedeSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (editingSede) {
-      await updateSede(editingSede.id, sedeFormData.nombre, sedeFormData.direccion, sedeFormData.pais_id);
-    } else {
-      await createSede(sedeFormData.nombre, sedeFormData.direccion, sedeFormData.pais_id);
+    try {
+      if (editingSede) {
+        await updateSede(editingSede.id, sedeFormData.nombre, sedeFormData.direccion, sedeFormData.pais_id);
+      } else {
+        await createSede(sedeFormData.nombre, sedeFormData.direccion, sedeFormData.pais_id);
+      }
+      setIsModalOpen(false);
+      setSedeFormData({ nombre: '', direccion: '', pais_id: '' });
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Error al guardar la sede');
     }
-    setIsModalOpen(false);
-    loadData();
   }
 
   function handleSedeEdit(sede: Sede) {

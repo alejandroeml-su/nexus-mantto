@@ -29,13 +29,17 @@ export default function ConfigActivosPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (editingActivo) {
-      await updateActivo(editingActivo.id, formData);
-    } else {
-      await createActivo(formData);
+    try {
+      if (editingActivo) {
+        await updateActivo(editingActivo.id, formData);
+      } else {
+        await createActivo(formData);
+      }
+      closeModal();
+      loadData();
+    } catch (err: any) {
+      alert(err.message || 'Error al guardar el activo');
     }
-    closeModal();
-    loadData();
   }
 
   function handleEdit(activo: any) {
