@@ -391,7 +391,52 @@ export async function getUbicaciones() {
         FROM ubicaciones u
         JOIN areas ar ON u.area_id = ar.id
         JOIN sedes s ON ar.sede_id = s.id
+        ORDER BY u.nombre ASC
     `)).rows;
+}
+
+export async function createUbicacion(nombre: string, area_id: string, activo: boolean = true) {
+    await query('INSERT INTO ubicaciones (nombre, area_id, activo) VALUES ($1, $2, $3)', [nombre, area_id, activo]);
+    revalidatePath('/configuracion/ubicaciones');
+}
+
+export async function updateUbicacion(id: string, nombre: string, area_id: string, activo: boolean) {
+    await query('UPDATE ubicaciones SET nombre = $1, area_id = $2, activo = $3 WHERE id = $4', [nombre, area_id, activo, id]);
+    revalidatePath('/configuracion/ubicaciones');
+}
+
+export async function deleteUbicacion(id: string) {
+    await query('DELETE FROM ubicaciones WHERE id = $1', [id]);
+    revalidatePath('/configuracion/ubicaciones');
+}
+
+// Areas
+export async function getAreas() {
+    return (await query(`
+        SELECT a.*, s.nombre as sede_nombre 
+        FROM areas a
+        JOIN sedes s ON a.sede_id = s.id
+        ORDER BY a.nombre ASC
+    `)).rows;
+}
+
+export async function createArea(nombre: string, sede_id: string, activo: boolean = true) {
+    await query('INSERT INTO areas (nombre, sede_id, activo) VALUES ($1, $2, $3)', [nombre, sede_id, activo]);
+    revalidatePath('/configuracion/ubicaciones');
+}
+
+export async function updateArea(id: string, nombre: string, sede_id: string, activo: boolean) {
+    await query('UPDATE areas SET nombre = $1, sede_id = $2, activo = $3 WHERE id = $4', [nombre, sede_id, activo, id]);
+    revalidatePath('/configuracion/ubicaciones');
+}
+
+export async function deleteArea(id: string) {
+    const check = await query('SELECT COUNT(*) FROM ubicaciones WHERE area_id = $1', [id]);
+    if (parseInt(check.rows[0].count) > 0) {
+        throw new Error('No se puede eliminar el área porque tiene ubicaciones asignadas.');
+    }
+    await query('DELETE FROM areas WHERE id = $1', [id]);
+    revalidatePath('/configuracion/ubicaciones');
 }
 
 export async function addEvidencia(mantenimiento_id: string, tipo: string, url: string, descripcion: string, nombre?: string) {
