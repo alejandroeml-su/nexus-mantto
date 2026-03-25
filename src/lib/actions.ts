@@ -230,8 +230,10 @@ export async function getSedes() {
 }
 
 export async function createSede(nombre: string, direccion: string, pais_id?: string) {
+  console.log('Action: createSede', { nombre, direccion, pais_id });
   await query('INSERT INTO sedes (nombre, direccion, pais_id) VALUES ($1, $2, $3)', [nombre, direccion, pais_id || null]);
   revalidatePath('/configuracion/ubicaciones');
+  return { success: true };
 }
 
 export async function updateSede(id: string, nombre: string, direccion: string, pais_id?: string) {
@@ -249,8 +251,10 @@ export async function getPaises() {
 }
 
 export async function createPais(nombre: string, codigo: string) {
+  console.log('Action: createPais', { nombre, codigo });
   await query('INSERT INTO paises (nombre, codigo) VALUES ($1, $2)', [nombre, codigo]);
   revalidatePath('/configuracion/ubicaciones');
+  return { success: true };
 }
 
 export async function updatePais(id: string, nombre: string, codigo: string) {

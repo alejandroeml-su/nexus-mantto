@@ -52,8 +52,10 @@ export default function ConfigUbicacionesPage() {
     try {
       if (editingPais) {
         await updatePais(editingPais.id, paisFormData.nombre, paisFormData.codigo);
+        alert('País actualizado con éxito');
       } else {
         await createPais(paisFormData.nombre, paisFormData.codigo);
+        alert('País registrado con éxito');
       }
       setIsPaisModalOpen(false);
       setPaisFormData({ nombre: '', codigo: '' });
@@ -86,8 +88,10 @@ export default function ConfigUbicacionesPage() {
     try {
       if (editingSede) {
         await updateSede(editingSede.id, sedeFormData.nombre, sedeFormData.direccion, sedeFormData.pais_id);
+        alert('Sede actualizada con éxito');
       } else {
         await createSede(sedeFormData.nombre, sedeFormData.direccion, sedeFormData.pais_id);
+        alert('Sede registrada con éxito');
       }
       setIsModalOpen(false);
       setSedeFormData({ nombre: '', direccion: '', pais_id: '' });
