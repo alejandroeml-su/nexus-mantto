@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Search, Box } from 'lucide-react';
-import { getActivos, createActivo, updateActivo, deleteActivo, getSedes } from '@/lib/actions';
+import { getActivos, createActivo, updateActivo, deleteActivo, getSedes, getAreas, getUbicaciones } from '@/lib/actions';
 import { Activo, Sede } from '@/lib/types';
 import BackButton from '@/components/BackButton';
 import ConfigNav from '@/components/ConfigNav';
@@ -12,9 +12,16 @@ export default function ConfigActivosPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [activos, setActivos] = useState<any[]>([]);
   const [sedes, setSedes] = useState<Sede[]>([]);
+  const [areas, setAreas] = useState<any[]>([]);
+  const [ubicaciones, setUbicaciones] = useState<any[]>([]);
+  
+  const [filteredAreas, setFilteredAreas] = useState<any[]>([]);
+  const [filteredUbicaciones, setFilteredUbicaciones] = useState<any[]>([]);
+
   const [editingActivo, setEditingActivo] = useState<any | null>(null);
   const [formData, setFormData] = useState<Partial<Activo>>({
-    nombre: '', codigo_activo: '', marca: '', modelo: '', serie: '', anio: new Date().getFullYear(), descripcion: '', sede_id: ''
+    nombre: '', codigo_activo: '', marca: '', modelo: '', serie: '', anio: new Date().getFullYear(), descripcion: '', 
+    sede_id: '', area_id: '', ubicacion_id: ''
   });
 
   useEffect(() => {
@@ -22,9 +29,16 @@ export default function ConfigActivosPage() {
   }, []);
 
   async function loadData() {
-    const [a, s] = await Promise.all([getActivos(), getSedes()]);
+    const [a, s, ar, u] = await Promise.all([
+      getActivos(), 
+      getSedes(),
+      getAreas(),
+      getUbicaciones()
+    ]);
     setActivos(a);
     setSedes(s as Sede[]);
+    setAreas(ar);
+    setUbicaciones(u);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -52,8 +66,19 @@ export default function ConfigActivosPage() {
       serie: activo.serie || '',
       anio: activo.anio || new Date().getFullYear(),
       descripcion: activo.descripcion || '',
-      sede_id: activo.sede_id || ''
+      sede_id: activo.sede_id || '',
+      area_id: activo.area_id || '',
+      ubicacion_id: activo.ubicacion_id || ''
     });
+
+    // Populate filtered lists for editing
+    if (activo.sede_id) {
+        setFilteredAreas(areas.filter(a => a.sede_id === activo.sede_id));
+    }
+    if (activo.area_id) {
+        setFilteredUbicaciones(ubicaciones.filter(u => u.area_id === activo.area_id));
+    }
+
     setIsModalOpen(true);
   }
 
@@ -67,8 +92,25 @@ export default function ConfigActivosPage() {
   function closeModal() {
     setIsModalOpen(false);
     setEditingActivo(null);
-    setFormData({ nombre: '', codigo_activo: '', marca: '', modelo: '', serie: '', anio: new Date().getFullYear(), descripcion: '', sede_id: '' });
+    setFormData({ 
+      nombre: '', codigo_activo: '', marca: '', modelo: '', serie: '', anio: new Date().getFullYear(), 
+      descripcion: '', sede_id: '', area_id: '', ubicacion_id: '' 
+    });
+    setFilteredAreas([]);
+    setFilteredUbicaciones([]);
   }
+
+  // Cascading Logic
+  const handleSedeChange = (sedeId: string) => {
+    setFormData({ ...formData, sede_id: sedeId, area_id: '', ubicacion_id: '' });
+    setFilteredAreas(areas.filter(a => a.sede_id === sedeId));
+    setFilteredUbicaciones([]);
+  };
+
+  const handleAreaChange = (areaId: string) => {
+    setFormData({ ...formData, area_id: areaId, ubicacion_id: '' });
+    setFilteredUbicaciones(ubicaciones.filter(u => u.area_id === areaId));
+  };
 
   return (
     <div className="animate-fade-in">
@@ -102,7 +144,7 @@ export default function ConfigActivosPage() {
             <tr>
               <th>Código</th>
               <th>Activo</th>
-              <th>Sede</th>
+              <th>Sede / Área / Ubicación</th>
               <th>Marca / Modelo</th>
               <th>Año</th>
               <th>Serie</th>
@@ -114,7 +156,11 @@ export default function ConfigActivosPage() {
               <tr key={activo.id}>
                 <td><code>{activo.codigo_activo || 'N/A'}</code></td>
                 <td>{activo.nombre}</td>
-                <td>{activo.sede_nombre || 'Sin Sede'}</td>
+                <td style={{fontSize: '0.75rem'}}>
+                    <div style={{fontWeight: 'bold'}}>{activo.sede_nombre || '---'}</div>
+                    <div style={{opacity: 0.8}}>{activo.area_nombre || '---'}</div>
+                    <div style={{opacity: 0.6}}>{activo.ubicacion_nombre || '---'}</div>
+                 </td>
                 <td>{activo.marca} / {activo.modelo}</td>
                 <td>{activo.anio}</td>
                 <td>{activo.serie}</td>
@@ -161,12 +207,26 @@ export default function ConfigActivosPage() {
                   <input type="text" value={formData.serie} onChange={e => setFormData({...formData, serie: e.target.value})} />
                 </div>
                 <div className={styles.formGroup}>
-                  <label>Sede</label>
-                  <select value={formData.sede_id} onChange={e => setFormData({...formData, sede_id: e.target.value})}>
-                    <option value="">Seleccionar Sede</option>
-                    {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-                  </select>
-                </div>
+                   <label>Sede</label>
+                   <select value={formData.sede_id} onChange={e => handleSedeChange(e.target.value)}>
+                     <option value="">Seleccionar Sede</option>
+                     {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                   </select>
+                 </div>
+                 <div className={styles.formGroup}>
+                   <label>Área</label>
+                   <select value={formData.area_id} onChange={e => handleAreaChange(e.target.value)} disabled={!formData.sede_id}>
+                     <option value="">Seleccionar Área</option>
+                     {filteredAreas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+                   </select>
+                 </div>
+                 <div className={styles.formGroup}>
+                   <label>Ubicación</label>
+                   <select value={formData.ubicacion_id} onChange={e => setFormData({...formData, ubicacion_id: e.target.value})} disabled={!formData.area_id}>
+                     <option value="">Seleccionar Ubicación</option>
+                     {filteredUbicaciones.map(u => <option key={u.id} value={u.id}>{u.nombre}</option>)}
+                   </select>
+                 </div>
               </div>
               <div className={styles.formGroup}>
                 <label>Descripción</label>

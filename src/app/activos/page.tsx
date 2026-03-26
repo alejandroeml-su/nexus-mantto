@@ -41,6 +41,7 @@ import {
   updateActivo, 
   deleteActivo, 
   getSedes, 
+  getAreas,
   getMantenimientos, 
   updateMantenimiento,
   getHistorialMantenimiento,
@@ -79,6 +80,11 @@ function ActivosContent() {
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
   const [isCatalogModalOpen, setIsCatalogModalOpen] = useState(false);
   
+  const [sedes, setSedes] = useState<Sede[]>([]);
+  const [areas, setAreas] = useState<any[]>([]);
+  const [filteredAreas, setFilteredAreas] = useState<any[]>([]);
+  const [filteredUbicaciones, setFilteredUbicaciones] = useState<any[]>([]);
+  
   const [selectedHistory, setSelectedHistory] = useState<any[]>([]);
   const [activeHistoryName, setActiveHistoryName] = useState('');
   const [selectedAssetForHistory, setSelectedAssetForHistory] = useState<any | null>(null);
@@ -104,7 +110,8 @@ function ActivosContent() {
   const [newEntry, setNewEntry] = useState('');
 
   const [formData, setFormData] = useState<Partial<Activo>>({
-    nombre: '', codigo_activo: '', marca: '', modelo: '', serie: '', anio: new Date().getFullYear(), descripcion: '', ubicacion_id: '', estado: 'Operativo'
+    nombre: '', codigo_activo: '', marca: '', modelo: '', serie: '', anio: new Date().getFullYear(), descripcion: '', 
+    sede_id: '', area_id: '', ubicacion_id: '', estado: 'Operativo'
   });
 
   const [batchData, setBatchData] = useState({
@@ -130,9 +137,16 @@ function ActivosContent() {
   }, [detailItem?.id]);
 
   async function loadData() {
-    const [a, ubi] = await Promise.all([getActivos(), getUbicaciones()]);
+    const [a, ubi, s, ar] = await Promise.all([
+        getActivos(), 
+        getUbicaciones(),
+        getSedes(),
+        getAreas()
+    ]);
     setActivos(a);
     setUbicaciones(ubi);
+    setSedes(s as Sede[]);
+    setAreas(ar);
   }
 
   async function loadExtraData() {
@@ -206,10 +220,20 @@ function ActivosContent() {
       serie: activo.serie || '',
       anio: activo.anio || new Date().getFullYear(),
       descripcion: activo.descripcion || '',
+      sede_id: activo.sede_id || '',
+      area_id: activo.area_id || '',
       ubicacion_id: activo.ubicacion_id || '',
       estado: activo.estado || 'Operativo',
       tipo: activo.tipo || 'General'
     });
+
+    if (activo.sede_id) {
+        setFilteredAreas(areas.filter(ar => ar.sede_id === activo.sede_id));
+    }
+    if (activo.area_id) {
+        setFilteredUbicaciones(ubicaciones.filter(ub => ub.area_id === activo.area_id));
+    }
+
     setIsModalOpen(true);
   }
 
@@ -308,8 +332,24 @@ function ActivosContent() {
   function closeModal() {
     setIsModalOpen(false);
     setEditingActivo(null);
-    setFormData({ nombre: '', codigo_activo: '', marca: '', modelo: '', serie: '', anio: new Date().getFullYear(), descripcion: '', ubicacion_id: '', estado: 'Operativo' });
+    setFormData({ 
+      nombre: '', codigo_activo: '', marca: '', modelo: '', serie: '', anio: new Date().getFullYear(), 
+      descripcion: '', sede_id: '', area_id: '', ubicacion_id: '', estado: 'Operativo' 
+    });
+    setFilteredAreas([]);
+    setFilteredUbicaciones([]);
   }
+
+  const handleSedeChange = (sedeId: string) => {
+    setFormData({ ...formData, sede_id: sedeId, area_id: '', ubicacion_id: '' });
+    setFilteredAreas(areas.filter(a => a.sede_id === sedeId));
+    setFilteredUbicaciones([]);
+  };
+
+  const handleAreaChange = (areaId: string) => {
+    setFormData({ ...formData, area_id: areaId, ubicacion_id: '' });
+    setFilteredUbicaciones(ubicaciones.filter(u => u.area_id === areaId));
+  };
 
   const toggleSelection = (id: string) => {
     setSelectedAssetIds(prev => 
@@ -414,7 +454,7 @@ function ActivosContent() {
               <th style={{ width: '40px' }}><Square size={18} /></th>
               <th>ACTIVO</th>
               <th>SERIE / QR</th>
-              <th>SEDE / UBICACIÓN</th>
+              <th>SEDE / ÁREA / UBICACIÓN</th>
               <th>ESTADO</th>
               <th style={{ textAlign: 'right' }}>ACCIONES</th>
             </tr>
@@ -442,12 +482,13 @@ function ActivosContent() {
                     <button className={styles.qrBtn} onClick={() => setSelectedQR({ name: activo.nombre, value: activo.qr_code })}><QrCode size={16} /></button>
                   </div>
                 </td>
-                <td>
-                  <div className={styles.locationInfo}>
-                    <span className={styles.sedeName}>{activo.sede_nombre}</span>
-                    <span className={styles.deptoName}>{activo.depto_nombre}</span>
-                  </div>
-                </td>
+                 <td>
+                   <div className={styles.locationInfo}>
+                     <span className={styles.sedeName}>{activo.sede_nombre || '---'}</span>
+                     <span className={styles.deptoName} style={{opacity: 0.8}}>{activo.area_nombre || '---'}</span>
+                     <span style={{fontSize: '0.75rem', opacity: 0.6}}>{activo.ubicacion_nombre || '---'}</span>
+                   </div>
+                 </td>
                 <td>
                   <span className={`${styles.statusBadge} ${
                     activo.estado === 'Operativo' ? styles.statusOk : 
@@ -560,15 +601,29 @@ function ActivosContent() {
                 </div>
               </div>
               <div className={styles.formGroup}>
-                <label>Ubicación (Sede - Area - Lugar)</label>
-                <select value={formData.ubicacion_id} onChange={e => setFormData({...formData, ubicacion_id: e.target.value})} required>
-                  <option value="">Seleccionar Ubicación</option>
-                  {ubicaciones.map(u => (
-                      <option key={u.id} value={u.id}>
-                          {u.sede_nombre} - {u.area_nombre} - {u.nombre}
-                      </option>
-                  ))}
-                </select>
+                <div className={styles.formGrid}>
+                 <div className={styles.formGroup}>
+                   <label>Sede</label>
+                   <select value={formData.sede_id} onChange={e => handleSedeChange(e.target.value)}>
+                     <option value="">Seleccionar Sede</option>
+                     {sedes.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                   </select>
+                 </div>
+                 <div className={styles.formGroup}>
+                   <label>Área</label>
+                   <select value={formData.area_id} onChange={e => handleAreaChange(e.target.value)} disabled={!formData.sede_id}>
+                     <option value="">Seleccionar Área</option>
+                     {filteredAreas.map(a => <option key={a.id} value={a.id}>{a.nombre}</option>)}
+                   </select>
+                 </div>
+                 <div className={styles.formGroup}>
+                   <label>Ubicación</label>
+                   <select value={formData.ubicacion_id} onChange={e => setFormData({...formData, ubicacion_id: e.target.value})} disabled={!formData.area_id}>
+                     <option value="">Seleccionar Ubicación</option>
+                     {filteredUbicaciones.map(u => <option key={u.id} value={u.id}>{u.nombre}</option>)}
+                   </select>
+                 </div>
+               </div>
               </div>
               <div className={styles.formGrid}>
                 <div className={styles.formGroup}>

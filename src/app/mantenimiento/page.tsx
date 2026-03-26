@@ -33,6 +33,9 @@ import {
   updateMantenimiento, 
   getHistorialMantenimiento, 
   getUsuarios,
+  getActivos,
+  scheduleMantenimiento,
+  createBitacora,
   getEvidencias,
   addEvidencia,
   getActividades,
@@ -58,6 +61,21 @@ export default function MantenimientoPage() {
   const [evidencias, setEvidencias] = useState<any[]>([]);
   const [actividades, setActividades] = useState<any[]>([]);
   const [items, setItems] = useState<any[]>([]);
+  const [activos, setActivos] = useState<any[]>([]);
+  
+  // Quick Create States
+  const [isQuickCreateOpen, setIsQuickCreateOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<number | null>(null);
+  const [quickCreateType, setQuickCreateType] = useState<'OT' | 'Bitacora'>('OT');
+  const [quickCreateForm, setQuickCreateForm] = useState({
+    activo_id: '',
+    descripcion: '',
+    tipo: 'Preventivo',
+    prioridad: 'Media',
+    tecnico_id: ''
+  });
+
+  const [dragOverDay, setDragOverDay] = useState<number | null>(null);
 
   const [activityForm, setActivityForm] = useState({
     descripcion: '', fecha_inicio: '', fecha_fin: ''
@@ -77,12 +95,14 @@ export default function MantenimientoPage() {
   const daysLabels = ['DOM', 'LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB'];
 
   async function loadData() {
-    const [maintData, userData] = await Promise.all([
+    const [maintData, userData, assetsData] = await Promise.all([
       getMantenimientos(),
-      getUsuarios()
+      getUsuarios(),
+      getActivos()
     ]);
     setMantenimientos(maintData);
     setTecnicos(userData.filter(u => u.rol === 'Técnico' || u.rol === 'Jefe'));
+    setActivos(assetsData);
   }
 
   useEffect(() => {
@@ -165,13 +185,19 @@ export default function MantenimientoPage() {
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
+  const handleDragOver = (e: React.DragEvent, day?: number) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
+    if (day !== undefined) setDragOverDay(day);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverDay(null);
   };
 
   const handleDrop = async (e: React.DragEvent, dayNumber: number) => {
     e.preventDefault();
+    setDragOverDay(null);
     const id = e.dataTransfer.getData('maintId');
     if (!id) return;
 
@@ -187,6 +213,48 @@ export default function MantenimientoPage() {
     } catch (err) {
       console.error("Error updating date:", err);
       loadData();
+    }
+  };
+
+  const handleDayClick = (dayNumber: number) => {
+    setSelectedDate(dayNumber);
+    setIsQuickCreateOpen(true);
+  };
+
+  const handleQuickCreateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedDate) return;
+
+    const fecha = new Date(currentDate.getFullYear(), currentDate.getMonth(), selectedDate, 12, 0, 0);
+    
+    try {
+      if (quickCreateType === 'OT') {
+        await scheduleMantenimiento({
+          activo_id: quickCreateForm.activo_id,
+          descripcion: quickCreateForm.descripcion,
+          tipo: quickCreateForm.tipo as any,
+          prioridad: quickCreateForm.prioridad as any,
+          tecnico_id: quickCreateForm.tecnico_id || undefined,
+          fecha_programada: fecha
+        }, role);
+      } else {
+        await createBitacora({
+          activo_id: quickCreateForm.activo_id,
+          descripcion: quickCreateForm.descripcion,
+          tipo: quickCreateForm.tipo as any,
+          prioridad: quickCreateForm.prioridad as any,
+          tecnico_id: quickCreateForm.tecnico_id || undefined,
+          fecha_programada: fecha as any,
+          estado: 'Completado' as any
+        }, role);
+      }
+      
+      setIsQuickCreateOpen(false);
+      setQuickCreateForm({ activo_id: '', descripcion: '', tipo: 'Preventivo', prioridad: 'Media', tecnico_id: '' });
+      loadData();
+    } catch (error) {
+      console.error("Error creating from calendar:", error);
+      alert('Error al crear el registro.');
     }
   };
 
@@ -344,9 +412,12 @@ export default function MantenimientoPage() {
               return (
                 <div 
                   key={day} 
-                  className={`${styles.dayCell} ${isToday(day) ? styles.today : ''}`}
-                  onDragOver={handleDragOver}
+                  className={`${styles.dayCell} ${isToday(day) ? styles.today : ''} ${dragOverDay === day ? styles.dragOver : ''}`}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
                   onDrop={(e) => handleDrop(e, day)}
+                  onClick={() => handleDayClick(day)}
+                  title="Click para crear OT o Bitácora"
                 >
                   <span className={styles.dayNumber}>{day}</span>
                   {dayEvents.map(m => (
@@ -388,6 +459,100 @@ export default function MantenimientoPage() {
           </div>
         )}
       </section>
+
+      {isQuickCreateOpen && (
+        <div className={styles.modalOverlay}>
+          <div className={`${styles.quickCreateModal} glass animate-fade-in`}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.detailTitle}>Nueva Entrada - {selectedDate} {monthNames[month]}</h2>
+              <button 
+                className={styles.closeModalBtn} 
+                onClick={() => setIsQuickCreateOpen(false)}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className={styles.typeSelector}>
+              <button 
+                className={`${styles.typeBtn} ${quickCreateType === 'OT' ? styles.activeType : ''}`}
+                onClick={() => setQuickCreateType('OT')}
+              >
+                <Activity size={18} />
+                Orden de Trabajo
+              </button>
+              <button 
+                className={`${styles.typeBtn} ${quickCreateType === 'Bitacora' ? styles.activeType : ''}`}
+                onClick={() => setQuickCreateType('Bitacora')}
+              >
+                <CheckCircle2 size={18} />
+                Bitácora (Directo)
+              </button>
+            </div>
+
+            <form onSubmit={handleQuickCreateSubmit} className={styles.quickFormContent}>
+              <div className={styles.formGroup}>
+                <label>Activo</label>
+                <select 
+                  value={quickCreateForm.activo_id}
+                  onChange={(e) => setQuickCreateForm({...quickCreateForm, activo_id: e.target.value})}
+                  required
+                >
+                  <option value="">Seleccionar activo...</option>
+                  {activos.map(a => (
+                    <option key={a.id} value={a.id}>{a.nombre} ({a.codigo_activo})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className={styles.formGrid}>
+                <div className={styles.formGroup}>
+                  <label>Tipo</label>
+                  <select 
+                    value={quickCreateForm.tipo}
+                    onChange={(e) => setQuickCreateForm({...quickCreateForm, tipo: e.target.value})}
+                  >
+                    <option value="Preventivo">Preventivo</option>
+                    <option value="Correctivo">Correctivo</option>
+                    <option value="Predictivo">Predictivo</option>
+                  </select>
+                </div>
+                <div className={styles.formGroup}>
+                  <label>Prioridad</label>
+                  <select 
+                    value={quickCreateForm.prioridad}
+                    onChange={(e) => setQuickCreateForm({...quickCreateForm, prioridad: e.target.value})}
+                  >
+                    <option value="Baja">Baja</option>
+                    <option value="Media">Media</option>
+                    <option value="Alta">Alta</option>
+                    <option value="Crítica">Crítica</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className={styles.formGroup}>
+                <label>Descripción</label>
+                <textarea 
+                  placeholder="Detalles del trabajo..."
+                  value={quickCreateForm.descripcion}
+                  onChange={(e) => setQuickCreateForm({...quickCreateForm, descripcion: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div className={styles.modalActions}>
+                  <button type="button" className={styles.cancelBtn} onClick={() => setIsQuickCreateOpen(false)}>
+                      Cancelar
+                  </button>
+                  <button type="submit" className={styles.saveBtn}>
+                      {quickCreateType === 'OT' ? 'Programar OT' : 'Registrar en Bitácora'}
+                  </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {detailItem && (
         <div className={styles.modalOverlay}>

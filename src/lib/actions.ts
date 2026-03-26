@@ -25,9 +25,11 @@ export async function getActivos() {
            mo.nombre as modelo,
            ea.nombre as estado,
            u.nombre as ubicacion_nombre,
+           ar.nombre as area_nombre,
            d.nombre as depto_nombre,
            s.nombre as sede_nombre,
            a.ubicacion_id,
+           a.area_id,
            a.departamento_id,
            a.sede_id
     FROM activos a
@@ -36,6 +38,7 @@ export async function getActivos() {
     LEFT JOIN marcas ma ON mo.marca_id = ma.id
     LEFT JOIN estados_activo ea ON a.estado_id = ea.id
     LEFT JOIN ubicaciones u ON a.ubicacion_id = u.id
+    LEFT JOIN areas ar ON a.area_id = ar.id
     LEFT JOIN sedes s ON a.sede_id = s.id
     LEFT JOIN departamentos d ON a.departamento_id = d.id
     ORDER BY a.created_at DESC
@@ -44,7 +47,7 @@ export async function getActivos() {
 }
 
 export async function createActivo(data: Partial<Activo>, userRol?: string) {
-  const { nombre, tipo, marca, modelo, serie, codigo_activo, descripcion, ubicacion_id, departamento_id, sede_id } = data;
+  const { nombre, tipo, marca, modelo, serie, codigo_activo, descripcion, ubicacion_id, area_id, departamento_id, sede_id } = data;
   
   const tipo_id = await getCatalogId('tipos_activo', tipo || 'HVAC');
   const marca_row = await query('SELECT id FROM marcas WHERE nombre = $1', [marca]);
@@ -56,9 +59,9 @@ export async function createActivo(data: Partial<Activo>, userRol?: string) {
   const qr_code = `QR-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
   
   await query(
-    `INSERT INTO activos (nombre, tipo_id, modelo_id, serie, codigo_activo, qr_code, estado_id, ubicacion_id, departamento_id, creado_por, sede_id) 
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-    [nombre, tipo_id, modelo_id, serie, codigo_activo, qr_code, estado_id, ubicacion_id || null, departamento_id || null, userRol || 'Sistema', sede_id || null]
+    `INSERT INTO activos (nombre, tipo_id, modelo_id, serie, codigo_activo, qr_code, estado_id, ubicacion_id, area_id, departamento_id, creado_por, sede_id) 
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+    [nombre, tipo_id, modelo_id, serie, codigo_activo, qr_code, estado_id, ubicacion_id || null, area_id || null, departamento_id || null, userRol || 'Sistema', sede_id || null]
   );
   
   revalidatePath('/activos');
@@ -66,13 +69,14 @@ export async function createActivo(data: Partial<Activo>, userRol?: string) {
 }
 
 export async function updateActivo(id: string, data: Partial<Activo>) {
-  const { nombre, tipo, marca, modelo, serie, codigo_activo, estado, ubicacion_id, departamento_id, sede_id } = data;
+  const { nombre, tipo, marca, modelo, serie, codigo_activo, estado, ubicacion_id, area_id, departamento_id, sede_id } = data;
   
   const tipo_id = tipo ? await getCatalogId('tipos_activo', tipo) : undefined;
   const marca_row = marca ? await query('SELECT id FROM marcas WHERE nombre = $1', [marca]) : undefined;
   const marca_id = marca_row?.rows[0]?.id;
   const modelo_id = modelo && marca_id ? await getCatalogId('modelos', modelo) : undefined;
   const estado_id = estado ? await getCatalogId('estados_activo', estado) : undefined;
+  const depto_id = departamento_id ? departamento_id : undefined;
 
   await query(
     `UPDATE activos SET 
@@ -83,10 +87,11 @@ export async function updateActivo(id: string, data: Partial<Activo>) {
       codigo_activo = COALESCE($5, codigo_activo), 
       estado_id = COALESCE($6, estado_id), 
       ubicacion_id = COALESCE($7, ubicacion_id), 
-      departamento_id = COALESCE($8, departamento_id),
-      sede_id = COALESCE($9, sede_id)
-     WHERE id = $10`,
-    [nombre, tipo_id, modelo_id, serie, codigo_activo, estado_id, ubicacion_id, departamento_id, sede_id, id]
+      area_id = COALESCE($8, area_id),
+      departamento_id = COALESCE($9, departamento_id),
+      sede_id = COALESCE($10, sede_id)
+     WHERE id = $11`,
+    [nombre, tipo_id, modelo_id, serie, codigo_activo, estado_id, ubicacion_id, area_id, depto_id, sede_id, id]
   );
   revalidatePath('/activos');
   revalidatePath('/configuracion/activos');
