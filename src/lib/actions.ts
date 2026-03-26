@@ -11,9 +11,13 @@ const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'nexus-sup
 
 
 // Helper to get ID from Name in catalogs
-async function getCatalogId(table: string, name: string): Promise<string | null> {
+async function getCatalogId(table: string, name: string): Promise<string> {
   const result = await query(`SELECT id FROM ${table} WHERE nombre = $1`, [name]);
-  return result.rows[0]?.id || null;
+  if (result.rows.length === 0) {
+    console.error(`Catalog entry not found: table=${table}, name=${name}`);
+    throw new Error(`Configuración faltante: el valor '${name}' no existe en el catálogo '${table}'. Por favor contacte al administrador.`);
+  }
+  return result.rows[0].id;
 }
 
 // Assets
@@ -126,23 +130,28 @@ export async function getMantenimientos() {
 export async function scheduleMantenimiento(data: Partial<Mantenimiento>, userRol?: string) {
   const { activo_id, tipo, descripcion, fecha_programada, tecnico_id, prioridad } = data;
   
-  const tipo_id = await getCatalogId('tipos_mantenimiento', tipo || 'Preventivo');
-  const prio_id = await getCatalogId('prioridades', prioridad || 'Media');
-  const estado_id = await getCatalogId('estados_mantenimiento', 'Programado');
+  try {
+    const tipo_id = await getCatalogId('tipos_mantenimiento', tipo || 'Preventivo');
+    const prio_id = await getCatalogId('prioridades', prioridad || 'Media');
+    const estado_id = await getCatalogId('estados_mantenimiento', 'Programado');
 
-  const res = await query(
-    `INSERT INTO mantenimientos (activo_id, tipo_id, prioridad_id, estado_id, descripcion, fecha_programada, creado_por) 
-     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-    [activo_id, tipo_id, prio_id, estado_id, descripcion, fecha_programada, userRol || 'Sistema']
-  );
-  
-  if (tecnico_id) {
-    await query('INSERT INTO mantenimiento_tecnicos (mantenimiento_id, usuario_id) VALUES ($1, $2)', [res.rows[0].id, tecnico_id]);
+    const res = await query(
+      `INSERT INTO mantenimientos (activo_id, tipo_id, prioridad_id, estado_id, descripcion, fecha_programada, creado_por) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [activo_id, tipo_id, prio_id, estado_id, descripcion, fecha_programada, userRol || 'Sistema']
+    );
+    
+    if (tecnico_id) {
+      await query('INSERT INTO mantenimiento_tecnicos (mantenimiento_id, usuario_id) VALUES ($1, $2)', [res.rows[0].id, tecnico_id]);
+    }
+
+    revalidatePath('/mantenimiento');
+    revalidatePath('/dashboard');
+    revalidatePath('/seguimiento');
+  } catch (error) {
+    console.error("Error in scheduleMantenimiento:", error);
+    throw error;
   }
-
-  revalidatePath('/mantenimiento');
-  revalidatePath('/dashboard');
-  revalidatePath('/seguimiento');
 }
 
 export async function updateMantenimiento(id: string, data: Partial<Mantenimiento>, userRol?: string) {
@@ -456,20 +465,27 @@ export async function getEvidencias(mantenimiento_id: string) {
 
 export async function createBitacora(data: Partial<Mantenimiento>, userRol?: string) {
   const { activo_id, tipo, descripcion, fecha_programada, tecnico_id, comentarios, prioridad } = data;
-  const tipo_id = await getCatalogId('tipos_mantenimiento', tipo || 'Preventivo');
-  const prio_id = await getCatalogId('prioridades', prioridad || 'Media');
-  const estado_id = await getCatalogId('estados_mantenimiento', 'Completado');
-
-  const res = await query(
-    `INSERT INTO mantenimientos (activo_id, tipo_id, prioridad_id, estado_id, descripcion, fecha_programada, comentarios, fecha_fin, creado_por) 
-     VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8) RETURNING id`,
-    [activo_id, tipo_id, prio_id, estado_id, descripcion, fecha_programada, comentarios, userRol || 'Sistema']
-  );
   
-  if (tecnico_id) {
-    await query('INSERT INTO mantenimiento_tecnicos (mantenimiento_id, usuario_id) VALUES ($1, $2)', [res.rows[0].id, tecnico_id]);
+  try {
+    const tipo_id = await getCatalogId('tipos_mantenimiento', tipo || 'Preventivo');
+    const prio_id = await getCatalogId('prioridades', prioridad || 'Media');
+    const estado_id = await getCatalogId('estados_mantenimiento', 'Completado');
+
+    const res = await query(
+      `INSERT INTO mantenimientos (activo_id, tipo_id, prioridad_id, estado_id, descripcion, fecha_programada, comentarios, fecha_fin, creado_por) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, NOW(), $8) RETURNING id`,
+      [activo_id, tipo_id, prio_id, estado_id, descripcion, fecha_programada, comentarios, userRol || 'Sistema']
+    );
+    
+    if (tecnico_id) {
+      await query('INSERT INTO mantenimiento_tecnicos (mantenimiento_id, usuario_id) VALUES ($1, $2)', [res.rows[0].id, tecnico_id]);
+    }
+    revalidatePath('/bitacoras');
+    revalidatePath('/mantenimiento');
+  } catch (error) {
+    console.error("Error in createBitacora:", error);
+    throw error;
   }
-  revalidatePath('/bitacoras');
 }
 
 export async function scheduleBatchMantenimiento(items: Partial<Mantenimiento>[], userRol?: string) {

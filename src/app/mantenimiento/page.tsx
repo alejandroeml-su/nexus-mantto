@@ -225,6 +225,11 @@ export default function MantenimientoPage() {
     e.preventDefault();
     if (!selectedDate) return;
 
+    if (!quickCreateForm.activo_id) {
+      alert('Por favor selecciona un activo.');
+      return;
+    }
+
     const fecha = new Date(currentDate.getFullYear(), currentDate.getMonth(), selectedDate, 12, 0, 0);
     
     try {
@@ -251,10 +256,10 @@ export default function MantenimientoPage() {
       
       setIsQuickCreateOpen(false);
       setQuickCreateForm({ activo_id: '', descripcion: '', tipo: 'Preventivo', prioridad: 'Media', tecnico_id: '' });
-      loadData();
-    } catch (error) {
+      await loadData();
+    } catch (error: any) {
       console.error("Error creating from calendar:", error);
-      alert('Error al crear el registro.');
+      alert(`Error al crear el registro: ${error.message || 'Error desconocido'}`);
     }
   };
 
