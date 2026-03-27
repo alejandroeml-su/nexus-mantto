@@ -155,6 +155,7 @@
 }
 
 .editBtn:hover { color: var(--primary); }
+.keyBtn:hover { color: var(--warning); }
 .deleteBtn:hover { color: var(--danger); }
 
 /* Roles Section */

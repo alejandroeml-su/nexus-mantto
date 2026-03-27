@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { UserPlus, Shield, Mail, Edit, Trash2, Key, Check, X } from 'lucide-react';
-import { getUsuarios, createUsuario, updateUsuario, deleteUsuario } from '@/lib/actions';
+import { getUsuarios, createUsuario, updateUsuario, deleteUsuario, adminResetPassword } from '@/lib/actions';
 import { useRole } from '@/lib/useRole';
 import BackButton from '@/components/BackButton';
 import ConfigNav from '@/components/ConfigNav';
@@ -15,6 +15,9 @@ export default function ConfigUsuariosPage() {
   const [usuarios, setUsuarios] = useState<any[]>([]);
   const [editingUser, setEditingUser] = useState<any | null>(null);
   const [formData, setFormData] = useState({ nombre: '', email: '', rol: 'Técnico', departamento_id: '', password: '' });
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false);
+  const [resetUserId, setResetUserId] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -56,6 +59,21 @@ export default function ConfigUsuariosPage() {
       }
     } catch (err: any) {
       alert(err.message || 'Error al eliminar');
+    }
+  }
+
+  async function handleResetPassword(e: React.FormEvent) {
+    e.preventDefault();
+    if (!resetUserId || !newPassword) return;
+    setError('');
+    try {
+      await adminResetPassword(resetUserId, newPassword);
+      setIsResetModalOpen(false);
+      setResetUserId(null);
+      setNewPassword('');
+      alert('Contraseña actualizada correctamente');
+    } catch (err: any) {
+      setError(err.message || 'Error al actualizar contraseña');
     }
   }
 
@@ -124,6 +142,7 @@ export default function ConfigUsuariosPage() {
               <div className={styles.userFooter}>
                 <span>Departamento: {user.depto_nombre || 'General'}</span>
                 <div className={styles.rowActions}>
+                  <button className={styles.keyBtn} onClick={() => { setResetUserId(user.id); setIsResetModalOpen(true); }} title="Cambiar Contraseña"><Key size={16} /></button>
                   <button className={styles.editBtn} onClick={() => handleEdit(user)} title="Editar"><Edit size={16} /></button>
                   <button className={styles.deleteBtn} onClick={() => handleDelete(user.id)} title="Eliminar"><Trash2 size={16} /></button>
                 </div>
@@ -232,6 +251,39 @@ export default function ConfigUsuariosPage() {
               <div className={styles.modalActions}>
                 <button type="button" onClick={closeModal} className={styles.cancelBtn}>Cancelar</button>
                 <button type="submit" className={styles.saveBtn}>{editingUser ? 'Guardar Cambios' : 'Registrar'}</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {isResetModalOpen && (
+        <div className={styles.modalOverlay}>
+          <div className={`${styles.modal} glass animate-fade-in`}>
+            <h2>Restablecer Contraseña</h2>
+            <p className={styles.rolesDesc}>Ingresa la nueva contraseña para el usuario seleccionado.</p>
+            
+            {error && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-200">
+                {error}
+              </div>
+            )}
+            
+            <form className={styles.form} onSubmit={handleResetPassword}>
+              <div className={styles.formGroup}>
+                <label>Nueva Contraseña</label>
+                <input 
+                  type="password" 
+                  value={newPassword} 
+                  onChange={e => setNewPassword(e.target.value)} 
+                  placeholder="••••••••" 
+                  required 
+                  autoFocus
+                />
+              </div>
+              <div className={styles.modalActions}>
+                <button type="button" onClick={() => { setIsResetModalOpen(false); setResetUserId(null); setNewPassword(''); setError(''); }} className={styles.cancelBtn}>Cancelar</button>
+                <button type="submit" className={styles.saveBtn} style={{ background: 'var(--warning)' }}>Restablecer</button>
               </div>
             </form>
           </div>

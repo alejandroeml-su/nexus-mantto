@@ -313,6 +313,12 @@ export async function updateUsuario(id: string, data: { nombre: string; email: s
   revalidatePath('/configuracion/usuarios');
 }
 
+export async function adminResetPassword(userId: string, newPassword: string) {
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  await query('UPDATE usuarios SET password = $1 WHERE id = $2', [hashedPassword, userId]);
+  revalidatePath('/configuracion/usuarios');
+}
+
 export async function deleteUsuario(id: string) {
   await query('DELETE FROM usuarios WHERE id = $1', [id]);
   revalidatePath('/configuracion/usuarios');
