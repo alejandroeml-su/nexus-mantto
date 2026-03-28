@@ -5,9 +5,7 @@ import { Activo, Mantenimiento } from '@/lib/types';
 import { revalidatePath } from 'next/cache';
 import { cookies } from 'next/headers';
 import * as bcrypt from 'bcryptjs';
-import { SignJWT, jwtVerify } from 'jose';
-
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'nexus-super-secret-key-12345');
+import { encrypt } from '@/lib/auth';
 
 
 // Helper to get ID from Name in catalogs
@@ -340,10 +338,7 @@ export async function login(email: string, password_input: string) {
   }
 
   // Create token
-  const token = await new SignJWT({ id: user.id, email: user.email, rol: user.rol })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setExpirationTime('1d')
-    .sign(JWT_SECRET);
+  const token = await encrypt({ id: user.id, email: user.email, rol: user.rol });
 
   const cookieStore = await cookies();
   cookieStore.set('session', token, {

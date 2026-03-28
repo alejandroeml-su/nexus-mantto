@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { ShieldAlert, LogIn, Key, Mail } from 'lucide-react';
+import { ShieldAlert, LogIn, Key, Mail, ChevronRight } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { login } from '@/lib/actions';
 import Link from 'next/link';
@@ -21,7 +21,7 @@ export default function LoginPage() {
     try {
       const res = await login(email, password);
       if (res.success) {
-        // Para compatibilidad con useRole actual
+        // För compatibilitet med useRole actual
         localStorage.setItem('user_role', res.user.rol);
         localStorage.setItem('user_name', res.user.nombre);
         router.push('/dashboard');
@@ -34,71 +34,121 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 animate-fade-in" style={{ background: 'var(--bg-gradient)' }}>
-      <div className="glass p-8 rounded-2xl w-full max-w-md shadow-2xl">
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center mb-4 text-white shadow-lg">
-            <ShieldAlert size={32} />
+    <div className="login-container">
+      {/* Lado Izquierdo: Branding & Hero Image */}
+      <div className="login-hero">
+        <div className="login-hero-bg" />
+        <div className="login-hero-overlay" />
+        
+        {/* Contenido Hero */}
+        <div className="login-hero-content">
+          <div className="login-badge-container">
+            <div className="login-badge-icon">
+              <ShieldAlert size={40} />
+            </div>
+            <span className="login-badge-text">Nexus Digital Ecosystem</span>
           </div>
-          <h1 className="text-3xl font-bold text-gray-800">NEXUS 4.0</h1>
-          <p className="text-gray-500 mt-2">Sistema de Gestión de Activos</p>
+          
+          <h1 className="login-title">
+            NEXUS <span className="text-gradient">4.0</span>
+          </h1>
+          
+          <p className="login-description">
+            Gestión inteligente de activos y mantenimiento industrial con análisis predictivo y control total.
+          </p>
+          
+          <div className="login-stats">
+            <div className="stat-item">
+              <span className="stat-value">100%</span>
+              <span className="stat-label">Control</span>
+            </div>
+            <div className="stat-divider" />
+            <div className="stat-item">
+              <span className="stat-value">24/7</span>
+              <span className="stat-label">Monitoreo</span>
+            </div>
+          </div>
         </div>
+      </div>
 
-        {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-200">
-            {error}
+      {/* Lado Derecho: Formulario de Login */}
+      <div className="login-form-side">
+        <div className="login-card">
+          <div className="login-header">
+            <h2>Bienvenido</h2>
+            <p>Ingresa tus credenciales para acceder</p>
           </div>
-        )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Correo Electrónico</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                <Mail size={18} />
-              </div>
-              <input
-                type="email"
-                value={email}
-                onChange={e => setEmail(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                placeholder="usuario@empresa.com"
-                required
-              />
+          {error && (
+            <div className="error-message">
+              <div className="error-dot" />
+              {error}
             </div>
-          </div>
+          )}
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Contraseña</label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                <Key size={18} />
+          <form onSubmit={handleSubmit} className="login-form">
+            <div className="input-group">
+              <label className="input-label">Correo Electrónico</label>
+              <div className="input-container">
+                <div className="input-icon">
+                  <Mail size={18} />
+                </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  className="login-input"
+                  placeholder="usuario@empresa.com"
+                  required
+                />
               </div>
-              <input
-                type="password"
-                value={password}
-                onChange={e => setPassword(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-                placeholder="••••••••"
-                required
-              />
             </div>
-          </div>
 
-          <div className="flex items-center justify-end">
-            <Link href="/recuperar" className="text-sm text-blue-600 hover:underline font-medium">
-              ¿Olvidaste tu contraseña?
-            </Link>
-          </div>
+            <div className="input-group">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <label className="input-label" style={{ marginBottom: 0 }}>Contraseña</label>
+                <Link href="/recuperar" style={{ fontSize: '0.75rem', color: '#3b82f6', textDecoration: 'none', fontWeight: 600 }}>
+                  ¿Olvidaste la clave?
+                </Link>
+              </div>
+              <div className="input-container">
+                <div className="input-icon">
+                  <Key size={18} />
+                </div>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  className="login-input"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+            </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 mt-4 shadow-md"
-          >
-            {loading ? 'Ingresando...' : <><LogIn size={20} /> Entrar</>}
-          </button>
-        </form>
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-login"
+            >
+              <div className="shine-effect" />
+              {loading ? (
+                  <span>Verificando...</span>
+              ) : (
+                  <>
+                      <span>Acceder al Sistema</span>
+                      <ChevronRight size={18} />
+                  </>
+              )}
+            </button>
+          </form>
+
+          <div style={{ marginTop: '2.5rem', textAlign: 'center' }}>
+              <p style={{ color: '#94a3b8', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
+                  Nexum Core Services &copy; {new Date().getFullYear()}
+              </p>
+          </div>
+        </div>
       </div>
     </div>
   );
