@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { 
   LayoutDashboard, 
   Box, 
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { UserRole } from '@/lib/types';
 import { hasPermission } from '@/lib/permissions';
+import { logout } from '@/lib/actions';
 import styles from './Sidebar.module.css';
 
 const navItems = [
@@ -29,6 +30,7 @@ const navItems = [
 ];
 
 export default function Sidebar({ mobile }: { mobile?: boolean }) {
+  const router = useRouter();
   const pathname = usePathname();
   const [role, setRole] = useState<UserRole>('SuperAdmin');
   const [userName, setUserName] = useState('Usuario Demo');
@@ -65,6 +67,19 @@ export default function Sidebar({ mobile }: { mobile?: boolean }) {
     localStorage.setItem('user_role', newRole);
     setIsRoleMenuOpen(false);
     window.location.reload(); // Reload to refresh permissions throughout
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      localStorage.removeItem('user_role');
+      localStorage.removeItem('user_name');
+      router.push('/login');
+    } catch (error) {
+      console.error('Error logging out:', error);
+      // Fallback redirect
+      window.location.href = '/login';
+    }
   };
 
   const filteredItems = navItems.filter(item => 
@@ -144,7 +159,7 @@ export default function Sidebar({ mobile }: { mobile?: boolean }) {
           )}
         </div>
         
-        <button className={styles.logoutBtn}>
+        <button className={styles.logoutBtn} onClick={handleLogout}>
           <LogOut size={18} />
           {!isCollapsed && <span>Cerrar Sesión</span>}
         </button>
