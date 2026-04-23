@@ -22,9 +22,11 @@ export default function LoginPage() {
       const res = await login(email, password);
       if (res.success) {
         // För compatibilitet med useRole actual
-        localStorage.setItem('user_role', res.user.rol);
-        localStorage.setItem('user_name', res.user.nombre);
+        localStorage.setItem('user_role', res.user?.rol || '');
+        localStorage.setItem('user_name', res.user?.nombre || '');
         router.push('/dashboard');
+      } else {
+        setError(res.message || 'Error al iniciar sesión');
       }
     } catch (err: any) {
       setError(err.message || 'Error al iniciar sesión');

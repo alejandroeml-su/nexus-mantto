@@ -325,31 +325,36 @@ export async function deleteUsuario(id: string) {
 // Authentication Actions
 
 export async function login(email: string, password_input: string) {
-  const res = await query('SELECT * FROM usuarios WHERE email = $1', [email]);
-  const user = res.rows[0];
+  try {
+    const res = await query('SELECT * FROM usuarios WHERE email = $1', [email]);
+    const user = res.rows[0];
 
-  if (!user || !user.password) {
-    throw new Error('Credenciales inválidas');
+    if (!user || !user.password) {
+      return { success: false, message: 'Credenciales inválidas' };
+    }
+
+    const isValid = await bcrypt.compare(password_input, user.password);
+    if (!isValid) {
+      return { success: false, message: 'Credenciales inválidas' };
+    }
+
+    // Create token
+    const token = await encrypt({ id: user.id, email: user.email, rol: user.rol });
+
+    const cookieStore = await cookies();
+    cookieStore.set('session', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 60 * 60 * 24 // 1 day
+    });
+
+    return { success: true, user: { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol } };
+  } catch (error: any) {
+    console.error("Login error:", error);
+    return { success: false, message: error.message || 'Error al iniciar sesión' };
   }
-
-  const isValid = await bcrypt.compare(password_input, user.password);
-  if (!isValid) {
-    throw new Error('Credenciales inválidas');
-  }
-
-  // Create token
-  const token = await encrypt({ id: user.id, email: user.email, rol: user.rol });
-
-  const cookieStore = await cookies();
-  cookieStore.set('session', token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: 60 * 60 * 24 // 1 day
-  });
-
-  return { success: true, user: { id: user.id, nombre: user.nombre, email: user.email, rol: user.rol } };
 }
 
 export async function logout() {
